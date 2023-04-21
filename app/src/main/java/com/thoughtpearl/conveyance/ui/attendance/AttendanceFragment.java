@@ -1,0 +1,1041 @@
+package com.thoughtpearl.conveyance.ui.attendance;
+
+import static com.thoughtpearl.conveyance.utility.TrackerUtility.convertStringToDate;
+import static java.io.File.createTempFile;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.DatePickerDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.provider.MediaStore;
+import android.provider.Settings;
+import android.system.Os;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
+import com.roomorama.caldroid.CaldroidFragment;
+import com.thoughtpearl.conveyance.BottomNavigationActivity;
+import com.thoughtpearl.conveyance.LocationActivity;
+import com.thoughtpearl.conveyance.LocationApp;
+import com.thoughtpearl.conveyance.R;
+import com.thoughtpearl.conveyance.api.ApiHandler;
+import com.thoughtpearl.conveyance.api.LeavesDetails;
+import com.thoughtpearl.conveyance.api.SearchRideFilter;
+import com.thoughtpearl.conveyance.api.SearchRideResponse;
+import com.thoughtpearl.conveyance.api.response.Attendance;
+import com.thoughtpearl.conveyance.api.response.Ride;
+import com.thoughtpearl.conveyance.databinding.FragmentAttendanceBinding;
+import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
+import com.thoughtpearl.conveyance.services.MyService;
+import com.thoughtpearl.conveyance.ui.login.LoginActivity;
+import com.thoughtpearl.conveyance.utility.TrackerUtility;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class AttendanceFragment extends Fragment {
+
+    public static final int ATTENDANCE_CHECKIN_CAMERA_REQUEST = 1;
+    public static final int ATTENDANCE_CHECKOUT_CAMERA_REQUEST = 2;
+    private static final int REQUEST_CODE = 11;
+    private FragmentAttendanceBinding binding;
+    CaldroidFragment caldroidFragment;
+    File checkInImageFile;
+    File checkOutImageFile;
+    private static boolean isClockedIn = false;
+    private static boolean isClockedOut = false;
+    private String customStartDate;
+    private String customEndDate;
+
+
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             ViewGroup container, Bundle savedInstanceState) {
+        AttendanceViewModel attendanceViewModel =
+                new ViewModelProvider(this).get(AttendanceViewModel.class);
+
+        LocationApp.logs("Attendance onCreate");
+        binding = FragmentAttendanceBinding.inflate(inflater, container, false);
+        View root = binding.getRoot();
+        binding.test.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+            @Override
+            public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                if(scrollY > 25) {
+                    binding.swipeRefreshLayout.setEnabled(false);
+                } else {
+                    binding.swipeRefreshLayout.setEnabled(true);
+                }
+            }
+        });
+         binding.swipeRefreshLayout.setNestedScrollingEnabled(true);
+         binding.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+             @Override
+             public void onRefresh() {
+                Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
+                 if (!TrackerUtility.checkConnection(getActivity())) {
+                     Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+                     binding.swipeRefreshLayout.setRefreshing(false);
+                 } else {
+                     calculateLeave(false);
+                 }
+             }
+         });
+
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+        AtomicReference<String> checkInDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
+        AtomicReference<String> checkOutDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
+        AtomicReference<Boolean> isRideDisabled = new AtomicReference<>(sharedPreferences.getBoolean("rideDisabled", false));
+        if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+            isClockedIn = true;
+            binding.checkInBtn.setBackgroundColor(Color.GRAY);
+        } else {
+            isClockedIn = false;
+            binding.checkInBtn.setBackgroundColor(Color.WHITE);
+        }
+
+        if (checkOutDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+            isClockedOut = true;
+            binding.checkOutBtn.setBackgroundColor(Color.GRAY);
+        } else {
+            isClockedOut = false;
+            binding.checkOutBtn.setBackgroundColor(Color.WHITE);
+        }
+
+        binding.checkInBtn.setOnClickListener(view -> {
+                checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
+                checkOutDate.set(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
+                if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+                    isClockedIn = true;
+                    binding.checkInBtn.setBackgroundColor(Color.GRAY);
+                } else {
+                    isClockedIn = false;
+                    binding.checkInBtn.setBackgroundColor(Color.WHITE);
+                }
+
+                if (isClockedIn) {
+                    Toast.makeText(getActivity(), "You are already Check In", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                if (checkPermissions()) {
+                    checkInImageFile = createImageFile();
+                    // Continue only if the File was successfully created
+                    Uri photoURI = null;
+                    if (checkInImageFile != null) {
+                        photoURI = FileProvider.getUriForFile(
+                                getActivity(),
+                                "com.thoughtpearl.conveyance.fileprovider",
+                                checkInImageFile
+                        );
+                    }
+
+                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                    startActivityForResult(cameraIntent, ATTENDANCE_CHECKIN_CAMERA_REQUEST);
+                } else {
+                    requestPermissions();
+                }
+
+            //ApiHandler.getClient().markAttendance(LocationApp.USER_NAME, LocationApp.DEVICE_ID,);
+        });
+
+        binding.checkOutBtn.setOnClickListener(view -> {
+
+                checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
+                checkOutDate.set(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
+                if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+                    isClockedIn = true;
+                    binding.checkInBtn.setBackgroundColor(Color.GRAY);
+                } else {
+                    isClockedIn = false;
+                    binding.checkInBtn.setBackgroundColor(Color.WHITE);
+                }
+
+                if (checkOutDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+                    isClockedOut = true;
+                    binding.checkOutBtn.setBackgroundColor(Color.GRAY);
+                } else {
+                    isClockedOut = false;
+                    binding.checkOutBtn.setBackgroundColor(Color.WHITE);
+                }
+
+                if (!isClockedIn) {
+                    Toast.makeText(getActivity(), "You have not Check In today.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (isClockedOut) {
+                    Toast.makeText(getActivity(), "You are already Check Out", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                if (checkPermissions()) {
+                    if (isRideDisabled.get()) {
+                        checkOutImageFile = createImageFile();
+                        LocationApp.logs("checkout checkOutImageFile :" + checkOutImageFile.getAbsoluteFile());
+                        // Continue only if the File was successfully created
+                        Uri photoURI = null;
+                        if (checkOutImageFile != null) {
+                            //String packageName = getActivity().getApplicationContext().getPackageName();
+                            photoURI = FileProvider.getUriForFile(
+                                    getActivity(),
+                                    "com.thoughtpearl.conveyance.fileprovider",
+                                    checkOutImageFile
+                            );
+                        }
+                        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                        startActivityForResult(cameraIntent, ATTENDANCE_CHECKOUT_CAMERA_REQUEST);
+                    } else {
+                        fetchTodaysRides();
+                    }
+                } else {
+                    requestPermissions();
+                }
+        });
+
+        binding.applyLeaveBtn.setOnClickListener(view -> {
+            showLeavesAlertDialog();
+        });
+
+        //CalendarView calendarView = binding.attendanceCalendarView;
+
+        // If Activity is created after rotation
+        if (savedInstanceState != null) {
+            caldroidFragment.restoreStatesFromKey(savedInstanceState,
+                    "CALDROID_SAVED_STATE");
+        } else {
+            //if (caldroidFragment == null) {
+                caldroidFragment = new CaldroidFragment();
+                Bundle args = new Bundle();
+                Calendar cal = Calendar.getInstance();
+                args.putInt(CaldroidFragment.MONTH, cal.get(Calendar.MONTH) + 1);
+                args.putInt(CaldroidFragment.YEAR, cal.get(Calendar.YEAR));
+                //args.putBoolean(CaldroidFragment.SQUARE_TEXT_VIEW_CELL, false);
+                //args.putInt(CaldroidFragment.THEME_RESOURCE, com.caldroid.R.style.CaldroidDefaultDark);
+                caldroidFragment.setArguments(args);
+                FragmentTransaction t = getActivity().getSupportFragmentManager().beginTransaction();
+                t.replace(R.id.calender_container, caldroidFragment);
+                t.commit();
+            /*} else {
+                FragmentTransaction t = getActivity().getSupportFragmentManager().beginTransaction();
+                t.replace(R.id.calender_container, caldroidFragment);
+                t.commit();
+            }*/
+        }
+
+        LocationApp.leavesDetailsMutableLiveData.observe(getViewLifecycleOwner(), getLeavesDetailsObserver());
+
+        if (!TrackerUtility.checkConnection(getActivity())) {
+            Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+            binding.swipeRefreshLayout.setRefreshing(false);
+        } else {
+            calculateLeave(true);
+        }
+
+        return root;
+    }
+
+    @NonNull
+    private Observer<LeavesDetails> getLeavesDetailsObserver() {
+        return leavesDetails -> {
+            int month = 0;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                month = LocalDate.now().getMonth().getValue();
+            }
+
+            HashMap<Date, Integer> leavingsTaken = new HashMap<>();
+            HashMap<Date, Drawable> leavingsTakenHashMap = new HashMap<>();
+            ColorDrawable publicHolidayColor = new ColorDrawable(getResources().getColor(R.color.public_holiday_color));
+            ColorDrawable leaveTakenBackgroundColor = new ColorDrawable(getResources().getColor(R.color.leave_color));
+            ColorDrawable compOffBackgroundColor = new ColorDrawable(getResources().getColor(R.color.compoff_color));
+            ColorDrawable workingBackgroundColor = new ColorDrawable(getResources().getColor(R.color.working_color));
+            ColorDrawable weekEndBackgroundColor = new ColorDrawable(getResources().getColor(R.color.weekend_color));
+            int leaveTakenTextColor = R.color.white;
+            List<Date> weekendList = TrackerUtility.getAllWeekends();
+
+            weekendList.forEach(date -> {
+                leavingsTaken.put(date, leaveTakenTextColor);
+                leavingsTakenHashMap.put(date, weekEndBackgroundColor);
+            });
+
+            binding.leaveTakenTextView.setText("" + leavesDetails.getLeavesTaken());
+            binding.leaveRemainingTextView.setText("" + leavesDetails.getLeavesRemaining());
+            binding.compoffTextView.setText("" + leavesDetails.getCompOffByMonth());
+
+            if (leavesDetails.getHolidays() != null) {
+                leavesDetails.getHolidays().forEach(attendanceDetails -> {
+                    leavingsTaken.put(convertStringToDate(attendanceDetails.getDate()), leaveTakenTextColor);
+                    leavingsTakenHashMap.put(convertStringToDate(attendanceDetails.getDate()), publicHolidayColor);
+                });
+            }
+
+            if (leavesDetails.getAttendancesByYear() != null && leavesDetails.getAttendancesByYear().size() > 0) {
+                leavesDetails.getAttendancesByYear().forEach(attendanceDetails -> {
+                    if (attendanceDetails.getType().equalsIgnoreCase("ON-LEAVE")) {
+                        leavingsTaken.put(convertStringToDate(attendanceDetails.getDate()), leaveTakenTextColor);
+                        leavingsTakenHashMap.put(convertStringToDate(attendanceDetails.getDate()), leaveTakenBackgroundColor);
+                    }
+                });
+            }
+
+            if (leavesDetails.getCompOffByYear() != null) {
+                leavesDetails.getCompOffByYear().forEach(attendanceDetails -> {
+                    leavingsTaken.put(convertStringToDate(attendanceDetails.getDate()), leaveTakenTextColor);
+                    leavingsTakenHashMap.put(convertStringToDate(attendanceDetails.getDate()), compOffBackgroundColor);
+                });
+            }
+
+            if (leavesDetails.getWorkingDaysByYear() != null) {
+                leavesDetails.getWorkingDaysByYear().forEach(attendanceDetails -> {
+                    leavingsTaken.put(convertStringToDate(attendanceDetails.getDate()), leaveTakenTextColor);
+                    leavingsTakenHashMap.put(convertStringToDate(attendanceDetails.getDate()), workingBackgroundColor);
+                });
+            }
+
+            //setupWorkingDaysBackground(month, leavingsTaken, leavingsTakenHashMap, workingBackgroundColor, leaveTakenTextColor);
+
+            if (leavingsTaken.size() > 0 || leavingsTakenHashMap.size() > 0) {
+                if (caldroidFragment != null) {
+                    caldroidFragment.setTextColorForDates(leavingsTaken);
+                    caldroidFragment.setBackgroundDrawableForDates(leavingsTakenHashMap);
+                    //caldroidFragment.setSixWeeksInCalendar(true);
+                    caldroidFragment.refreshView();
+                }
+            } else {
+                //setupDummyHolidayRecords();
+            }
+
+        };
+    }
+
+    private void setupWorkingDaysBackground(int month, HashMap<Date, Integer> leavingsTaken, HashMap<Date, Drawable> leavingsTakenHashMap, ColorDrawable workingBackgroundColor, int leaveTakenTextColor) {
+        LocalDate firstDateOfTheMonth = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            firstDateOfTheMonth = LocalDate.now().withMonth(month).with(TemporalAdjusters.firstDayOfMonth());
+        }
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+        AtomicReference<String> checkInDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
+        AtomicReference<String> checkOutDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
+        if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
+            isClockedIn = true;
+        } else {
+            isClockedIn = false;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            for (LocalDate date = firstDateOfTheMonth; !date
+                    .isAfter(firstDateOfTheMonth.with(TemporalAdjusters.lastDayOfMonth())); date = date.plusDays(1))
+                //(!leavingsTakenHashMap.containsKey(TrackerUtility.asDate(date)) && date.isAfter(LocalDate.now())) || (isClockedIn && checkInDate.get().equals(date.toString()))
+                if (!leavingsTakenHashMap.containsKey(TrackerUtility.asDate(date)) && !date.isAfter(LocalDate.now())) {
+                     boolean isUpdate = true;
+                    if ((checkInDate.get().equals(date.toString()))) {
+                        isUpdate = isClockedIn;
+                    }
+                    if (isUpdate) {
+                        leavingsTaken.put(TrackerUtility.asDate(date), leaveTakenTextColor);
+                        leavingsTakenHashMap.put(TrackerUtility.asDate(date), workingBackgroundColor);
+                    }
+                }
+        }
+    }
+
+    private void setupDummyHolidayRecords() {
+
+        ColorDrawable publicHolidayColor = new ColorDrawable(getResources().getColor(R.color.purple_200));
+        ColorDrawable leaveTakenBackgroundColor = new ColorDrawable(getResources().getColor(R.color.purple_500));
+        int leaveTakenTextColor = R.color.white;
+
+        HashMap<Date, Integer> leavingsTaken = new HashMap<>();
+        leavingsTaken.put(convertStringToDate("22-11-2022"), leaveTakenTextColor);
+        leavingsTaken.put(convertStringToDate("23-11-2022"), leaveTakenTextColor);
+        leavingsTaken.put(convertStringToDate("24-11-2022"), leaveTakenTextColor);
+
+        leavingsTaken.put(convertStringToDate("15-08-2022"), leaveTakenTextColor);
+        leavingsTaken.put(convertStringToDate("02-10-2022"), leaveTakenTextColor);
+        leavingsTaken.put(convertStringToDate("25-12-2022"), leaveTakenTextColor);
+        caldroidFragment.setTextColorForDates(leavingsTaken);
+
+        HashMap<Date, Drawable> leavingsTakenHashMap = new HashMap<>();
+        leavingsTakenHashMap.put(convertStringToDate("22-11-2022"), leaveTakenBackgroundColor);
+        leavingsTakenHashMap.put(convertStringToDate("23-11-2022"), leaveTakenBackgroundColor);
+        leavingsTakenHashMap.put(convertStringToDate("24-11-2022"), leaveTakenBackgroundColor);
+
+        leavingsTakenHashMap.put(convertStringToDate("15-08-2022"), publicHolidayColor);
+        leavingsTakenHashMap.put(convertStringToDate("02-10-2022"), publicHolidayColor);
+        leavingsTakenHashMap.put(convertStringToDate("25-12-2022"), publicHolidayColor);
+        caldroidFragment.setBackgroundDrawableForDates(leavingsTakenHashMap);
+        caldroidFragment.refreshView();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // TODO Auto-generated method stub
+        super.onSaveInstanceState(outState);
+
+        if (caldroidFragment != null) {
+            caldroidFragment.saveStatesToKey(outState, "CALDROID_SAVED_STATE");
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
+
+    public void markAttendance(String imagePath, Attendance attendance, AlertDialog alertDialog) {
+        if (!TrackerUtility.checkConnection(getActivity())) {
+            Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+        } else {
+
+            Dialog dailog = LocationApp.showLoader(getActivity());
+
+            RequestBody type = RequestBody.create(MediaType.parse("text/plain"), attendance.getType());
+            RequestBody date = RequestBody.create(MediaType.parse("text/plain"), attendance.getDate());
+            RequestBody time = RequestBody.create(MediaType.parse("text/plain"), attendance.getTime());
+
+            String username = LocationApp.getUserName(getActivity());
+            String deviceId = LocationApp.DEVICE_ID;
+            Map<String, RequestBody> bodyMap = new HashMap<>();
+            bodyMap.put("date", date);
+            bodyMap.put("time", time);
+            bodyMap.put("type", type);
+            if (attendance.getType().equalsIgnoreCase(LocationApp.ON_LEAVE)) {
+                RequestBody reasonForLeave = RequestBody.create(MediaType.parse("text/plain"), attendance.getReasonForLeave() == null ? "" : attendance.getReasonForLeave());
+                bodyMap.put("reasonForLeave", reasonForLeave);
+            }
+
+            if (attendance.getType() != LocationApp.ON_LEAVE) {
+                File file = new File(imagePath);
+                RequestBody filePart = RequestBody.create(MediaType.parse("image/jpeg"), file);
+                bodyMap.put("file\"; filename=\"" + type + ".png\" ", filePart);
+            }
+
+            if (attendance.getLatitude() != null) {
+                RequestBody latitude = RequestBody.create(MediaType.parse("text/plain"), attendance.getLatitude());
+                bodyMap.put("latitude", latitude);
+            }
+
+            if (attendance.getLongitude() != null) {
+                RequestBody longitude = RequestBody.create(MediaType.parse("text/plain"), attendance.getLongitude());
+                bodyMap.put("longitude", longitude);
+            }
+
+            Call<String> markAttendanceCall = ApiHandler.getClient().markAttendance(username, deviceId, bodyMap);
+            markAttendanceCall.enqueue(new Callback<String>() {
+                @Override
+                public void onResponse(Call<String> call, Response<String> response) {
+                    LocationApp.logs("username :" + username +" attendance : " + deviceId + "response :" + response.code());
+                    if (response.code() == 201 || response.code() == 200) {
+                        if (attendance.getType() == LocationApp.ON_LEAVE) {
+                            if (alertDialog != null) {
+                                alertDialog.dismiss();
+                                new Handler().postDelayed(() -> calculateLeave(true), 5000);
+                            }
+                            Toast.makeText(getActivity(), "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.d("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
+                            Toast.makeText(getActivity(), "Attendance marked successfully", Toast.LENGTH_SHORT).show();
+                            SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
+                                editor.putString(LocationApp.CLOCK_IN, attendance.getDate());
+                                editor.commit();
+                                new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
+                                isClockedIn = true;
+                            } else if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_OUT)) {
+                                editor.putString(LocationApp.CLOCK_OUT, attendance.getDate());
+                                editor.commit();
+                                new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY),1000);
+                                isClockedOut = true;
+                            }
+                        }
+                    } else {
+                        LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Else block");
+                        Log.d("TRIP", "Error :" + response.errorBody());
+                        String message = "Attendance not marked";
+                        if (attendance.getType() == LocationApp.ON_LEAVE) {
+                            message = "Leave not applied. Please try after sometime.";
+                        }
+                        Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+                    }
+                    dailog.dismiss();
+                }
+
+                @Override
+                public void onFailure(Call<String> call, Throwable t) {
+                    LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Error block");
+                    Toast.makeText(getActivity(), "Attendance not marked", Toast.LENGTH_SHORT).show();
+                    dailog.dismiss();
+                }
+            });
+        }
+    }
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        LocationApp.logs("Attendance : onActivityResult :");
+        Date myDate = new Date();
+        String date = TrackerUtility.getDateString(myDate);
+        String time = TrackerUtility.getTimeString(myDate);
+
+        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = locationManager.getBestProvider(criteria, true);
+        LocationApp.logs("Attendance : onActivityResult : provider :" + provider);
+        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location location = null;
+
+        if (provider != null) {
+            location = locationManager.getLastKnownLocation(provider);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
+
+        if (requestCode == AttendanceFragment.ATTENDANCE_CHECKIN_CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+            Log.d("TRIP", "CheckIn path :" + checkInImageFile.getAbsoluteFile());
+            LocationApp.logs("Attendance : onActivityResult :" + "CheckIn path :" + checkInImageFile.getAbsoluteFile());
+            Attendance attendance = new Attendance();
+            attendance.setType(LocationApp.CLOCK_IN);
+            attendance.setTime(time);
+            attendance.setDate(date);
+            if (location != null) {
+                attendance.setLatitude(String.valueOf(location.getLatitude()));
+                attendance.setLongitude(String.valueOf(location.getLongitude()));
+            }
+            LocationApp.logs("Attendance : before check in attendance :");
+            markAttendance(checkInImageFile.getAbsolutePath(), attendance, null);
+            LocationApp.logs("Attendance : After check in attendance :");
+
+        } else if (requestCode == AttendanceFragment.ATTENDANCE_CHECKOUT_CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+            Log.d("TRIP", "Checkout path :" + checkOutImageFile.getAbsoluteFile());
+            LocationApp.logs("Attendance : check out attendance :" + "Checkout path :" + checkOutImageFile.getAbsoluteFile() );
+            Attendance attendance = new Attendance();
+            attendance.setType(LocationApp.CLOCK_OUT);
+            attendance.setTime(time);
+            attendance.setDate(date);
+            if (location != null) {
+                attendance.setLatitude(String.valueOf(location.getLatitude()));
+                attendance.setLongitude(String.valueOf(location.getLongitude()));
+            }
+            LocationApp.logs("Attendance : before check out attendance :");
+            markAttendance(checkOutImageFile.getAbsolutePath(), attendance, null);
+            LocationApp.logs("Attendance : after check out attendance :");
+        }
+    }
+
+    /**
+     * Return the current state of the permissions needed.
+     */
+    private boolean checkPermissions() {
+        int permissionState = ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.CAMERA);
+        int permissionStateWriteFile = ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        /*int permissionStateWriteExternalStorageFile = ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.MANAGE_EXTERNAL_STORAGE);*/
+        int permissionStateFineLocation = ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        int permissionStateCourseLocation = ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION);
+
+        if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
+                    (permissionStateWriteFile == PackageManager.PERMISSION_GRANTED) &&
+                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
+                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+        } else {
+            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
+                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
+                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!checkPermissions()) {
+            requestPermissions();
+        }
+    }
+
+    private void takePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+             try {
+                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                 intent.addCategory("android.intent.category.DEFAULT");
+                 Uri uri = Uri.fromParts("package", getActivity().getPackageName(), null);
+                 intent.setData(uri);
+                 startActivityForResult(intent, 101);
+             } catch (Exception exception) {
+                 Intent intent = new Intent();
+                 intent.setAction(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                 startActivityForResult(intent, 101);
+             }
+        } else {
+            ActivityCompat.requestPermissions(getActivity(), new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, 101);
+        }
+    }
+
+    private void requestPermissions() {
+        boolean shouldProvideRationale = false;
+        if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            shouldProvideRationale =
+                    ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.ACCESS_COARSE_LOCATION);
+        } else {
+            shouldProvideRationale =
+                    ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                            Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // Provide an additional rationale to the user. This would happen if the user denied the
+        // request previously, but didn't check the "Don't ask again" checkbox.
+        if (shouldProvideRationale) {
+            Log.i("TRIP", "Displaying permission rationale to provide additional context.");
+
+            ActivityCompat.requestPermissions(getActivity(),
+                    new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_CODE);
+            /*showSnackbar(R.string.permission_rationale,
+                    android.R.string.ok, view -> {
+                        // Request permission
+                        ActivityCompat.requestPermissions(getActivity(),
+                                new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                REQUEST_CODE);
+                    });*/
+        } else {
+            Log.i("TRIP", "Requesting permission");
+            // Request permission. It's possible this can be auto answered if device policy
+            // sets the permission in a given state or the user denied the permission
+            // previously and checked "Never ask again".
+            String[] permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+            if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION};
+            }
+
+            ActivityCompat.requestPermissions(getActivity(),
+                    permissions,
+                    REQUEST_CODE);
+
+        }
+    }
+
+    /**
+     * Shows a {@link Snackbar}.
+     *
+     * @param mainTextStringId The id for the string resource for the Snackbar text.
+     * @param actionStringId   The text of the action item.
+     * @param listener         The listener associated with the Snackbar action.
+     */
+    private void showSnackbar(final int mainTextStringId, final int actionStringId,
+                              View.OnClickListener listener) {
+        Snackbar.make(getActivity().findViewById(android.R.id.content),
+                        getString(mainTextStringId),
+                        Snackbar.LENGTH_INDEFINITE )
+                .setAction(getString(actionStringId), listener).show();
+    }
+
+    /**
+     * Callback received when a permissions request has been completed.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.i("TRIP", "onRequestPermissionResult");
+        if (requestCode == REQUEST_CODE) {
+            if (grantResults.length <= 0) {
+                // If user interaction was interrupted, the permission request is cancelled and you
+                // receive empty arrays.
+                Log.i("TRIP", "User interaction was cancelled.");
+            } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                //Start Camera
+
+            } else {
+                // Permission denied.
+
+                // Notify the user via a SnackBar that they have rejected a core permission for the
+                // app, which makes the Activity useless. In a real app, core permissions would
+                // typically be best requested during a welcome-screen flow.
+
+                // Additionally, it is important to remember that a permission might have been
+                // rejected without asking the user for permission (device policy or "Never ask
+                // again" prompts). Therefore, a user interface affordance is typically implemented
+                // when permissions are denied. Otherwise, your app could appear unresponsive to
+                // touches or interactions which have required permissions.
+                showSnackbar(R.string.permission_denied_explanation,
+                        R.string.settings, view -> {
+                            // Build intent that displays the App settings screen.
+                            Intent intent = new Intent();
+                            intent.setAction(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            Uri uri = Uri.fromParts("package",
+                                    "com.thoughtpearl.conveyance", null);
+                            intent.setData(uri);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        });
+            }
+        }
+    }
+
+    private File createImageFile() {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = this.getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = null;
+        try {
+            image = createTempFile(
+                    imageFileName, /* prefix */
+                    ".jpg", /* suffix */
+                    storageDir      /* directory */
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Save a file: path for use with ACTION_VIEW intents
+        //mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    public void calculateLeave(boolean showLoader) {
+        Dialog dialog = null;
+        if (showLoader) {
+            dialog = LocationApp.showLoader(getActivity());
+        }
+        binding.attendanceLayout.setVisibility(View.VISIBLE);
+        binding.errorAnimation.setVisibility(View.GONE);
+        Call<LeavesDetails> leavesDetailsCAll= ApiHandler.getClient().getLeaveDetails(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID);
+        Dialog finalDialog = dialog;
+        leavesDetailsCAll.enqueue(new Callback<LeavesDetails>() {
+            @Override
+            public void onResponse(Call<LeavesDetails> call, Response<LeavesDetails> response) {
+                if (response.code() == 200 || response.code() == 201) {
+                   LeavesDetails leavesDetails = response.body();
+                   LocationApp.leavesDetailsMutableLiveData.setValue(leavesDetails);
+                } else {
+                    Log.d("TRIP", String.valueOf(response));
+                    Toast.makeText(getActivity(), "Leaves details not retried", Toast.LENGTH_SHORT).show();
+                }
+                if (showLoader) {
+                    finalDialog.dismiss();
+                }
+                binding.swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onFailure(Call<LeavesDetails> call, Throwable t) {
+                Toast.makeText(getActivity(), "Leaves details not retried", Toast.LENGTH_SHORT).show();
+                if (showLoader) {
+                    finalDialog.dismiss();
+                }
+                binding.attendanceLayout.setVisibility(View.GONE);
+                binding.errorAnimation.setVisibility(View.VISIBLE);
+                binding.swipeRefreshLayout.setRefreshing(false);
+            }
+        });
+    }
+
+    private void showLeavesAlertDialog() {
+        customStartDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
+        customEndDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
+
+        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(getActivity());
+        alertDialogBuilder.setCancelable(true);
+        alertDialogBuilder.setView(R.layout.date_picker_layout);
+        AlertDialog alertDialog = alertDialogBuilder.show();
+        ((TextView)alertDialog.findViewById(R.id.popupTitle)).setText("Apply for leaves");
+        ((TextView)alertDialog.findViewById(R.id.okAlertButton)).setText("Apply");
+        ((TextView)alertDialog.findViewById(R.id.fromDateLabel)).setText("Leave Date");
+        alertDialog.findViewById(R.id.leaveReason).setVisibility(View.VISIBLE);
+        alertDialog.findViewById(R.id.leaveReasonEditText).setVisibility(View.VISIBLE);
+        alertDialog.findViewById(R.id.toDateLabel).setVisibility(View.GONE);
+        alertDialog.findViewById(R.id.toDateTextView).setVisibility(View.GONE);
+        alertDialog.findViewById(R.id.okAlertButton).setOnClickListener(view-> {
+            /*if (!TrackerUtility.convertStringToDate(customEndDate).after(TrackerUtility.convertStringToDate(customStartDate))) {
+                Toast.makeText(getActivity(), "From Date should not be less than To Date", Toast.LENGTH_LONG).show();
+            } else*/
+            {
+                LocalDate localDate = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    localDate = LocalDate.parse(customStartDate);
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (localDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                        Toast.makeText(getActivity(), "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+
+                String reasonForLeave = ((EditText) alertDialog.findViewById(R.id.leaveReasonEditText)).getText().toString();
+                if (reasonForLeave.trim().length() == 0) {
+                    Toast.makeText(getActivity(), "Please enter reason for leave", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                Date myDate = convertStringToDate(customStartDate);
+                if (LocationApp.leavesDetailsMutableLiveData != null &&
+                        LocationApp.leavesDetailsMutableLiveData.getValue() != null) {
+                   int count = LocationApp.leavesDetailsMutableLiveData.getValue().getHolidays().stream().filter(attendanceDetails -> attendanceDetails.getDate().equalsIgnoreCase(customStartDate)).collect(Collectors.toList()).size();
+                    if (count > 0) {
+                        Toast.makeText(getActivity(), "Can not apply leaves on public holidays", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    int alreadyLeaveCount = LocationApp.leavesDetailsMutableLiveData.getValue().getAttendancesByYear().stream().filter(attendanceDetails -> attendanceDetails.getDate().equalsIgnoreCase(customStartDate)).collect(Collectors.toList()).size();
+                    if (alreadyLeaveCount > 0) {
+                        Toast.makeText(getActivity(), "You have already applied for leave.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+
+                String date = TrackerUtility.getDateString(myDate);
+                String time = TrackerUtility.getTimeString(myDate);
+                LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                Criteria criteria = new Criteria();
+                String provider = locationManager.getBestProvider(criteria, true);
+                if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+
+                Location location = null;
+                if (provider != null) {
+                    location = locationManager.getLastKnownLocation(provider);
+                }
+                if (location == null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                }
+                if (location == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                }
+
+                Attendance attendance = new Attendance();
+                attendance.setType(LocationApp.ON_LEAVE);
+                attendance.setTime(time);
+                attendance.setDate(date);
+                attendance.setReasonForLeave(reasonForLeave);
+                if (location != null) {
+                    attendance.setLatitude(String.valueOf(location.getLatitude()));
+                    attendance.setLongitude(String.valueOf(location.getLongitude()));
+                }
+                markAttendance("", attendance, alertDialog);
+            }
+        });
+
+        alertDialog.findViewById(R.id.cancelAlertButton).setOnClickListener(view-> {
+            alertDialog.dismiss();
+        });
+
+        DatePickerDialog.OnDateSetListener fromDateListener = (datePicker, i, i1, i2) -> {
+            Calendar mCalendar = Calendar.getInstance();
+            mCalendar.set(Calendar.YEAR, i);
+            mCalendar.set(Calendar.MONTH, i1);
+            mCalendar.set(Calendar.DAY_OF_MONTH, i2);
+            customStartDate = TrackerUtility.getDateString(mCalendar.getTime());
+            customEndDate = customStartDate;
+            LocalDate localDate = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                localDate = LocalDate.parse(customStartDate);
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (localDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                    Toast.makeText(getActivity(), "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+            ((TextView)alertDialog.findViewById(R.id.fromDateTextView)).setText(customStartDate);
+            ((TextView)alertDialog.findViewById(R.id.toDateTextView)).setText(customEndDate);
+
+        };
+
+        DatePickerDialog.OnDateSetListener toDateListener = (datePicker, i, i1, i2) -> {
+            Calendar mCalendar = Calendar.getInstance();
+            mCalendar.set(Calendar.YEAR, i);
+            mCalendar.set(Calendar.MONTH, i1);
+            mCalendar.set(Calendar.DAY_OF_MONTH, i2);
+
+            if (!convertStringToDate(customStartDate).before(mCalendar.getTime())) {
+                Toast.makeText(getActivity(), "ToDate can not be less than FromDate", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            customEndDate = TrackerUtility.getDateString(mCalendar.getTime());
+            ((TextView)alertDialog.findViewById(R.id.toDateTextView)).setText(customEndDate);
+        };
+
+        String sToDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
+        ((TextView)alertDialog.findViewById(R.id.toDateTextView)).setText(sToDate);
+        ((TextView)alertDialog.findViewById(R.id.fromDateTextView)).setText(sToDate);
+
+        alertDialog.findViewById(R.id.fromDateTextView).setOnClickListener(view -> {
+            //Toast.makeText(getActivity(), "From date clicked", Toast.LENGTH_SHORT).show();
+            showCalender(fromDateListener);
+        });
+
+        /*alertDialog.findViewById(R.id.toDateTextView).setOnClickListener(view -> {
+            //Toast.makeText(getActivity(), "To date clicked", Toast.LENGTH_SHORT).show();
+            showCalender(toDateListener);
+        });*/
+    }
+
+    private void showCalender(DatePickerDialog.OnDateSetListener dateListener) {
+        Calendar mCalendar = Calendar.getInstance();
+        int year = mCalendar.get(Calendar.YEAR);
+        int month = mCalendar.get(Calendar.MONTH);
+        int dayOfMonth = mCalendar.get(Calendar.DAY_OF_MONTH);
+        new DatePickerDialog(getActivity(), dateListener, year, month, dayOfMonth).show();
+    }
+
+    private void fetchTodaysRides() {
+        LocationApp.logs("Fetch Today's Rides");
+        AppExecutors.getInstance().getNetworkIO().execute(() -> {
+            Date today = Calendar.getInstance().getTime();
+            //today = TrackerUtility.convertStringToDate("2022-12-27");
+            SearchRideFilter filter = new SearchRideFilter(TrackerUtility.getDateString(today), TrackerUtility.getDateString(today));
+            Call<SearchRideResponse> searchRideStatisticsCall = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID, filter);
+            searchRideStatisticsCall.enqueue(new Callback<SearchRideResponse>() {
+                @Override
+                public void onResponse(Call<SearchRideResponse> call, Response<SearchRideResponse> response) {
+                    LocationApp.logs("Fetch Today's Rides : response " + response.code());
+                    if (response.code() == 200) {
+                        List<Ride> tripRecordList = response.body().getRideDTOList();
+                        if (tripRecordList != null) {
+                            int incompleteRidesCount = tripRecordList.stream().filter(ride -> ride.getRideEndTime() ==null).collect(Collectors.toList()).size();
+                            if (incompleteRidesCount > 0) {
+
+                                MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(getActivity());
+                                alertDialogBuilder.setCancelable(true);
+                                alertDialogBuilder.setTitle("Alert");
+                                alertDialogBuilder.setMessage("Before checkout you need to finish your incomplete or running rides.");
+                                alertDialogBuilder.setPositiveButton("Goto Rides", (dialogInterface, i) -> {
+
+                                    if (MyService.isTrackingOn != null && MyService.isTrackingOn.getValue() != null && MyService.isTrackingOn.getValue()) {
+                                        Intent intent = new Intent(getContext(), LocationActivity.class);
+                                        startActivity(intent);
+                                    } else {
+                                        NavController navController = Navigation.findNavController(getActivity(), R.id.nav_host_fragment_activity_bottom_navigation);
+                                        navController.navigate(R.id.navigation_ridedetails);
+                                    }
+                                });
+                                alertDialogBuilder.setNegativeButton("CANCEL", (dialogInterface, i) -> dialogInterface.dismiss());
+                                alertDialogBuilder.show();
+                                //Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG).show();
+
+                            } else {
+                                checkOutImageFile = createImageFile();
+                                LocationApp.logs("create else :" + checkOutImageFile.getAbsoluteFile());
+                                // Continue only if the File was successfully created
+                                Uri photoURI = null;
+                                if (checkOutImageFile != null) {
+                                    //String packageName = getActivity().getApplicationContext().getPackageName();
+                                    photoURI = FileProvider.getUriForFile(
+                                            getActivity(),
+                                            "com.thoughtpearl.conveyance.fileprovider",
+                                            checkOutImageFile
+                                    );
+                                }
+                                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                                startActivityForResult(cameraIntent, ATTENDANCE_CHECKOUT_CAMERA_REQUEST);
+                            }
+                        }
+                    }
+                }
+                @Override
+                public void onFailure(Call<SearchRideResponse> call, Throwable t) {
+                    //Toast.makeText(context, "Failed to fetch rides at the moment.", Toast.LENGTH_LONG).show();
+                }
+            });
+            //}
+        });
+    }
+}
