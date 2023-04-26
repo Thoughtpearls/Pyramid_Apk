@@ -171,6 +171,10 @@ public class MyService extends LifecycleService {
 
                     if (locationResult.getLocations() != null) {
                         locationResult.getLocations().forEach(location -> {
+                            if (gpsLocation.isFromMockProvider() || TrackerUtility.isDeveloperModeEnabled(context)) {
+                                Toast.makeText(context, "Please turn off developer option from settings. Without that ride will not be recorded.", Toast.LENGTH_LONG).show();
+                                return;
+                            }
                             if (gpsLocation != null) {
                                 Log.d("TRIP", "provider name : " + gpsLocation.getProvider() + "LocationProvider Accuracy: " + gpsLocation.getAccuracy() + " fused client location accuracy:" + location.getAccuracy());
                             }

@@ -47,9 +47,11 @@ public class LocationApp extends Application {
     }
 
     public static void logs(String key, String message) {
-        if (mCrashlytics != null) {
-            mCrashlytics.setUserId(LocationApp.USER_NAME);
-            mCrashlytics.setCustomKey(key, message);
+        FirebaseCrashlytics crashlytics = FirebaseCrashlytics.getInstance();
+        if (crashlytics != null) {
+            crashlytics.setUserId(LocationApp.USER_NAME);
+            crashlytics.setCustomKey(key, message);
+            crashlytics.log(key + " : " + message);
         }
     }
 

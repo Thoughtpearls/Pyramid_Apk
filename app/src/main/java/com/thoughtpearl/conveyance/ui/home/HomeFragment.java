@@ -63,7 +63,9 @@ public class HomeFragment extends Fragment {
         if (!(isClockedIn && isClockedOut)) {
             riderRecord.setBackgroundColor(Color.WHITE);
             riderRecord.setOnClickListener(view -> {
-                if (!TrackerUtility.checkConnection(getActivity())) {
+                if (TrackerUtility.isDeveloperModeEnabled(getActivity())) {
+                    Toast.makeText(getActivity(), "Please turn off developer option from settings without that record ride will not work.", Toast.LENGTH_LONG).show();
+                } else if (!TrackerUtility.checkConnection(getActivity())) {
                     Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
                 } else {
                     Intent intent = new Intent(getContext(), RecordRideActivity.class);
@@ -104,6 +106,10 @@ public class HomeFragment extends Fragment {
 
                 //Toast.makeText(getContext(), "i :" + year + " i1 :" +  month + " i2 :" + day, Toast.LENGTH_LONG).show();
             });
+        }
+
+        if (TrackerUtility.isDeveloperModeEnabled(getActivity())) {
+            Toast.makeText(getActivity(), "Please turn off developer options from settings without that record rides will not work", Toast.LENGTH_LONG).show();
         }
 
         return root;

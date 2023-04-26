@@ -513,7 +513,8 @@ public class AttendanceFragment extends Fragment {
                             }
                         }
                     } else {
-                        LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Else block");
+                        LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Else block attendance.getType()" + attendance.getType());
+                        LocationApp.logs("markAttendance", "username :" + username +" attendance : " + deviceId + "response : Else block");
                         Log.d("TRIP", "Error :" + response.errorBody());
                         String message = "Attendance not marked";
                         if (attendance.getType() == LocationApp.ON_LEAVE) {
@@ -526,6 +527,7 @@ public class AttendanceFragment extends Fragment {
 
                 @Override
                 public void onFailure(Call<String> call, Throwable t) {
+                    LocationApp.logs("markAttendance",  "onFailure username :" + username +" attendance : " + deviceId + " attendance.getType() " + attendance.getType());
                     LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Error block");
                     Toast.makeText(getActivity(), "Attendance not marked", Toast.LENGTH_SHORT).show();
                     dailog.dismiss();

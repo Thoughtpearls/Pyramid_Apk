@@ -123,7 +123,7 @@ public class TrackerUtility {
         Log.d("TRIP","Before Android ID : " + android_id);
         //android_id = "16fb058fe8efb57d";
         //android_id = "89ABCDEF-01234567-89ABCDEF";
-        //android_id = "555113d4af5795a2";
+        android_id = "555113d4af5795a2";
         Log.d("TRIP","After Android ID : " + android_id);
         return android_id;
     }
@@ -396,5 +396,13 @@ public class TrackerUtility {
             return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
         }
         return null;
+    }
+
+    public static boolean isDeveloperModeEnabled(Context context) {
+        if (Integer.valueOf(android.os.Build.VERSION.SDK) >= 17) {
+            return android.provider.Settings.Secure.getInt(context.getContentResolver(),
+                    android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0;
+        }
+        return false;
     }
 }

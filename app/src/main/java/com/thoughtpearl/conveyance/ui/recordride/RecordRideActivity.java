@@ -292,6 +292,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             if (location == null) {
                 return;
             }
+
             mlastLocation = mCurrentLocation;
             mCurrentLocation = location;
             updateLocationUI();
@@ -505,6 +506,8 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
+        } else if (TrackerUtility.isDeveloperModeEnabled(this)) {
+            Toast.makeText(getApplicationContext(), "Please turn off developer option from settings.", Toast.LENGTH_LONG).show();
         } else if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(getApplicationContext(), "Please turn on device location.", Toast.LENGTH_LONG).show();
         } else {
@@ -1027,7 +1030,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         int mapSideInPixels = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, mapHeightInDP, r.getDisplayMetrics());
 
         LatLngBounds latLngBounds = calculateBounds(point, meters);
-        if(latLngBounds != null){
+        if(latLngBounds != null) {
             CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(latLngBounds, mapSideInPixels, mapSideInPixels, (int)(mapHeightInDP * 0.05f));
             if(mMap != null)
                 mMap.animateCamera(cameraUpdate);
