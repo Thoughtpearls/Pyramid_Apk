@@ -29,7 +29,7 @@ public class ApiHandler {
                 .build();
         // below line is to create an instance for our retrofit api class.
         ApiInterface retrofitAPI = retrofit.create(ApiInterface.class);
-
+        
         /*RestAdapter adapter = new RestAdapter.Builder()
                 .setEndpoint("http://103.195.80.253:8091/api") //Set the Root URL
                 .build(); //Finally building the adapter

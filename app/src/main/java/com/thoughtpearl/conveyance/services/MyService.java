@@ -10,7 +10,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.icu.util.TimeUnit;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -34,7 +33,7 @@ import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
-import com.thoughtpearl.conveyance.LocationActivity;
+import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.api.ApiHandler;
@@ -46,9 +45,7 @@ import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 import java.io.File;
-import java.io.IOException;
 import java.math.RoundingMode;
-import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -61,12 +58,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -508,7 +501,7 @@ public class MyService extends LifecycleService {
     private void start() {
 
         setupInitialValues();
-        Intent notificationIntent = new Intent(this, LocationActivity.class);
+        Intent notificationIntent = new Intent(this, RecordRideActivity.class);
         //notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 11,

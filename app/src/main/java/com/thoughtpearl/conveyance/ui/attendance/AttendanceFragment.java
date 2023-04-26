@@ -1,5 +1,6 @@
 package com.thoughtpearl.conveyance.ui.attendance;
 
+import static com.thoughtpearl.conveyance.LocationApp.employeeProfileLiveData;
 import static com.thoughtpearl.conveyance.utility.TrackerUtility.convertStringToDate;
 import static java.io.File.createTempFile;
 
@@ -24,7 +25,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.system.Os;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,7 +37,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -50,8 +49,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.roomorama.caldroid.CaldroidFragment;
-import com.thoughtpearl.conveyance.BottomNavigationActivity;
-import com.thoughtpearl.conveyance.LocationActivity;
+import com.thoughtpearl.conveyance.databinding.FragmentAttendanceBinding;
+import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.api.ApiHandler;
@@ -59,11 +58,10 @@ import com.thoughtpearl.conveyance.api.LeavesDetails;
 import com.thoughtpearl.conveyance.api.SearchRideFilter;
 import com.thoughtpearl.conveyance.api.SearchRideResponse;
 import com.thoughtpearl.conveyance.api.response.Attendance;
+import com.thoughtpearl.conveyance.api.response.EmployeeProfile;
 import com.thoughtpearl.conveyance.api.response.Ride;
-import com.thoughtpearl.conveyance.databinding.FragmentAttendanceBinding;
 import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
 import com.thoughtpearl.conveyance.services.MyService;
-import com.thoughtpearl.conveyance.ui.login.LoginActivity;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 import java.io.File;
@@ -71,10 +69,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -82,7 +77,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
@@ -133,6 +127,7 @@ public class AttendanceFragment extends Fragment {
                      binding.swipeRefreshLayout.setRefreshing(false);
                  } else {
                      calculateLeave(false);
+
                  }
              }
          });
@@ -158,6 +153,11 @@ public class AttendanceFragment extends Fragment {
         }
 
         binding.checkInBtn.setOnClickListener(view -> {
+            LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+            if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                Toast.makeText(getActivity(), "Please turn on device location.", Toast.LENGTH_LONG).show();
+                return;
+            }
                 checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
                 checkOutDate.set(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
                 if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
@@ -172,6 +172,7 @@ public class AttendanceFragment extends Fragment {
                     Toast.makeText(getActivity(), "You are already Check In", Toast.LENGTH_LONG).show();
                     return;
                 }
+
 
                 if (checkPermissions()) {
                     checkInImageFile = createImageFile();
@@ -196,7 +197,11 @@ public class AttendanceFragment extends Fragment {
         });
 
         binding.checkOutBtn.setOnClickListener(view -> {
-
+                LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Toast.makeText(getActivity(), "Please turn on device location.", Toast.LENGTH_LONG).show();
+                    return;
+                }
                 checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
                 checkOutDate.set(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
                 if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
@@ -486,7 +491,7 @@ public class AttendanceFragment extends Fragment {
                         if (attendance.getType() == LocationApp.ON_LEAVE) {
                             if (alertDialog != null) {
                                 alertDialog.dismiss();
-                                new Handler().postDelayed(() -> calculateLeave(true), 5000);
+                                //new Handler().postDelayed(() -> calculateLeave(true), 5000);
                             }
                             Toast.makeText(getActivity(), "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
                         } else {
@@ -495,6 +500,7 @@ public class AttendanceFragment extends Fragment {
                             SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
+                                new Handler().postDelayed(() -> calculateLeave(true), 2000);
                                 editor.putString(LocationApp.CLOCK_IN, attendance.getDate());
                                 editor.commit();
                                 new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
@@ -796,14 +802,28 @@ public class AttendanceFragment extends Fragment {
                 if (response.code() == 200 || response.code() == 201) {
                    LeavesDetails leavesDetails = response.body();
                    LocationApp.leavesDetailsMutableLiveData.setValue(leavesDetails);
+                   String username = LocationApp.getUserName(getActivity());
+                   String deviceId = TrackerUtility.getDeviceId(getActivity());
+                   getEmployeeProfile(username, deviceId);
                 } else {
                     Log.d("TRIP", String.valueOf(response));
                     Toast.makeText(getActivity(), "Leaves details not retried", Toast.LENGTH_SHORT).show();
                 }
-                if (showLoader) {
-                    finalDialog.dismiss();
-                }
-                binding.swipeRefreshLayout.setRefreshing(false);
+                //call employeeProfile
+
+                new Handler().postDelayed(()-> {
+                    if (showLoader) {
+                        finalDialog.dismiss();
+                    }
+                    if (binding != null && binding.swipeRefreshLayout != null) {
+                        binding.swipeRefreshLayout.setRefreshing(false);
+                    } else {
+                       SwipeRefreshLayout swipeRefreshLayout = getActivity().findViewById(R.id.swipeRefreshLayout);
+                       if (swipeRefreshLayout != null) {
+                           swipeRefreshLayout.setRefreshing(false);
+                       }
+                    }
+                }, 2000);
             }
 
             @Override
@@ -999,7 +1019,7 @@ public class AttendanceFragment extends Fragment {
                                 alertDialogBuilder.setPositiveButton("Goto Rides", (dialogInterface, i) -> {
 
                                     if (MyService.isTrackingOn != null && MyService.isTrackingOn.getValue() != null && MyService.isTrackingOn.getValue()) {
-                                        Intent intent = new Intent(getContext(), LocationActivity.class);
+                                        Intent intent = new Intent(getContext(), RecordRideActivity.class);
                                         startActivity(intent);
                                     } else {
                                         NavController navController = Navigation.findNavController(getActivity(), R.id.nav_host_fragment_activity_bottom_navigation);
@@ -1036,6 +1056,48 @@ public class AttendanceFragment extends Fragment {
                 }
             });
             //}
+        });
+    }
+
+    void getEmployeeProfile(String userName, String deviceId) {
+
+        Call<EmployeeProfile> employeeProfileCall = ApiHandler.getClient().getEmployeeProfile(userName, deviceId);
+        employeeProfileCall.enqueue(new Callback<EmployeeProfile>() {
+            @Override
+            public void onResponse(Call<EmployeeProfile> call, Response<EmployeeProfile> response) {
+                if (response.code() == 200) {
+                    employeeProfileLiveData.setValue(response.body());
+                    getActivity().runOnUiThread(() -> {
+                        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        if (employeeProfileLiveData.getValue().isTodaysClockIn()) {
+                            editor.putString(LocationApp.CLOCK_IN, TrackerUtility.getDateString(new Date()));
+                            isClockedIn = true;
+                            binding.checkInBtn.setBackgroundColor(Color.GRAY);
+                        } else {
+                            isClockedIn = false;
+                            editor.putString(LocationApp.CLOCK_IN,"");
+                            binding.checkInBtn.setBackgroundColor(Color.WHITE);
+                        }
+
+                        if (employeeProfileLiveData.getValue().isTodaysClockOut()) {
+                            isClockedOut = true;
+                            editor.putString(LocationApp.CLOCK_OUT, TrackerUtility.getDateString(new Date()));
+                            binding.checkOutBtn.setBackgroundColor(Color.GRAY);
+                        } else {
+                            isClockedOut = false;
+                            editor.putString(LocationApp.CLOCK_OUT, "");
+                            binding.checkOutBtn.setBackgroundColor(Color.WHITE);
+                        }
+                        editor.commit();
+                    });
+
+                }
+            }
+            @Override
+            public void onFailure(Call<EmployeeProfile> call, Throwable t) {
+
+            }
         });
     }
 }

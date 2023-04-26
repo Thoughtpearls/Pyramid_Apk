@@ -1,6 +1,5 @@
 package com.thoughtpearl.conveyance.ui.rides;
 
-import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -22,14 +21,12 @@ import android.widget.Toast;
 import com.airbnb.lottie.LottieAnimationView;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
-import com.thoughtpearl.conveyance.RideDetailsActivity;
+import com.thoughtpearl.conveyance.ui.rides.ridedetails.RideDetailsActivity;
 import com.thoughtpearl.conveyance.api.ApiHandler;
 import com.thoughtpearl.conveyance.api.SearchRideFilter;
 import com.thoughtpearl.conveyance.api.SearchRideResponse;
 import com.thoughtpearl.conveyance.api.response.Ride;
 import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
-import com.thoughtpearl.conveyance.respository.databaseclient.DatabaseClient;
-import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 import java.util.ArrayList;

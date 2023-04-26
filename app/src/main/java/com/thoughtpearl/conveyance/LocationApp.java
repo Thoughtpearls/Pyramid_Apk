@@ -16,7 +16,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.thoughtpearl.conveyance.api.LeavesDetails;
 import com.thoughtpearl.conveyance.api.response.EmployeeProfile;
 import com.thoughtpearl.conveyance.crashlytics.CrashlysticsCustomKey;
-import com.thoughtpearl.conveyance.ui.MyProgressDialog;
+import com.thoughtpearl.conveyance.ui.customcomponent.MyProgressDialog;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 public class LocationApp extends Application {
@@ -43,6 +43,13 @@ public class LocationApp extends Application {
         if (mCrashlytics != null) {
             mCrashlytics.setUserId(LocationApp.USER_NAME);
             mCrashlytics.log(record_activity);
+        }
+    }
+
+    public static void logs(String key, String message) {
+        if (mCrashlytics != null) {
+            mCrashlytics.setUserId(LocationApp.USER_NAME);
+            mCrashlytics.setCustomKey(key, message);
         }
     }
 

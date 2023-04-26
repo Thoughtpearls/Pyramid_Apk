@@ -1,8 +1,5 @@
 package com.thoughtpearl.conveyance.ui.home;
 
-import static androidx.navigation.fragment.FragmentKt.findNavController;
-
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,7 +8,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CalendarView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,18 +15,12 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.thoughtpearl.conveyance.BottomNavigationActivity;
-import com.thoughtpearl.conveyance.LocationActivity;
+import com.thoughtpearl.conveyance.databinding.FragmentHomeBinding;
+import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
-import com.thoughtpearl.conveyance.databinding.FragmentHomeBinding;
-import com.thoughtpearl.conveyance.ui.MyProgressDialog;
-import com.thoughtpearl.conveyance.ui.attendance.AttendanceFragment;
-import com.thoughtpearl.conveyance.ui.login.LoginActivity;
-import com.thoughtpearl.conveyance.ui.statistics.StatisticsFragment;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 import java.util.Calendar;
@@ -76,7 +66,7 @@ public class HomeFragment extends Fragment {
                 if (!TrackerUtility.checkConnection(getActivity())) {
                     Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
                 } else {
-                    Intent intent = new Intent(getContext(), LocationActivity.class);
+                    Intent intent = new Intent(getContext(), RecordRideActivity.class);
                     startActivity(intent);
                 }
             });

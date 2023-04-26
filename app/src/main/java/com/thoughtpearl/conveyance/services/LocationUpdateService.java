@@ -26,7 +26,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 
-import com.thoughtpearl.conveyance.LocationActivity;
+import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.respository.database.TripDatabase;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
@@ -110,7 +110,7 @@ public class LocationUpdateService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }
-        Intent notificationIntent = new Intent(this, LocationActivity.class);
+        Intent notificationIntent = new Intent(this, RecordRideActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 SERVICE_LOCATION_REQUEST_CODE,
                 notificationIntent, PendingIntent.FLAG_MUTABLE);

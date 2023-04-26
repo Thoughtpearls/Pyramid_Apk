@@ -1,15 +1,12 @@
 package com.thoughtpearl.conveyance.api;
 
-import com.thoughtpearl.conveyance.RideDetailsResponse;
-import com.thoughtpearl.conveyance.RideReason;
-import com.thoughtpearl.conveyance.api.response.Attendance;
+import com.thoughtpearl.conveyance.api.response.RideDetailsResponse;
+import com.thoughtpearl.conveyance.api.response.RideReason;
 import com.thoughtpearl.conveyance.api.response.LocationRequest;
 import com.thoughtpearl.conveyance.api.response.LoginResponse;
 import com.thoughtpearl.conveyance.api.response.Ride;
 import com.thoughtpearl.conveyance.api.response.EmployeeProfile;
-import com.thoughtpearl.conveyance.api.response.LoginRequest;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,9 +24,7 @@ import retrofit.http.Part;
 import retrofit.mime.TypedFile;*/
 import okhttp3.RequestBody;
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.http.Body;
-import retrofit2.http.Field;
 import retrofit2.http.FieldMap;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
