@@ -67,6 +67,8 @@ public class MyItemRecyclerViewAdapter extends RecyclerView.Adapter<MyItemRecycl
             if (duration > 0) {
                 //holder.duration.setCompoundDrawableTintList(ColorStateList.valueOf(context.getColor(R.color.green)));
                 holder.duration.setText("" + TrackerUtility.getDurationBreakdown(duration));
+            } else {
+                holder.duration.setText("0sec");
             }
         } else {
             //holder.duration.setCompoundDrawableTintList(ColorStateList.valueOf(context.getColor(R.color.orange)));
