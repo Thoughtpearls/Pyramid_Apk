@@ -58,7 +58,6 @@ public class SplashScreenActivity extends AppCompatActivity {
                 finish();
             } else {
                 Intent intent = new Intent(getApplicationContext(), BottomNavigationActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();
             }

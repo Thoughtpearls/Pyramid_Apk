@@ -166,18 +166,14 @@ public class MyService extends LifecycleService {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
-                updateNotificationManager();
-                Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
+                    updateNotificationManager();
                     if (locationResult.getLocations() != null) {
                         locationResult.getLocations().forEach(location -> {
-                            if (gpsLocation.isFromMockProvider() || TrackerUtility.isDeveloperModeEnabled(context)) {
+                            if (location != null && (location.isFromMockProvider() || TrackerUtility.isDeveloperModeEnabled(context))) {
                                 Toast.makeText(context, "Please turn off developer option from settings. Without that ride will not be recorded.", Toast.LENGTH_LONG).show();
                                 return;
                             }
-                            if (gpsLocation != null) {
-                                Log.d("TRIP", "provider name : " + gpsLocation.getProvider() + "LocationProvider Accuracy: " + gpsLocation.getAccuracy() + " fused client location accuracy:" + location.getAccuracy());
-                            }
+
                             if (!isUsableLocation(location)) {
                                 Log.d("TRIP", "speed : " + location.getSpeed() + "accuracy :" + location.getAccuracy() );
                                return;
@@ -592,6 +588,7 @@ public class MyService extends LifecycleService {
     }
     public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, int retryAttemptCount) {
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
+            Looper.prepare();
             Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
         } else {
             ArrayList<com.thoughtpearl.conveyance.api.response.LocationRequest> locationRequests = new ArrayList<>();
@@ -626,6 +623,7 @@ public class MyService extends LifecycleService {
                         if (retryAttemptCount < 1) {
                             updateLocationsOnServer(unSyncedLocations, 1);
                         }
+                        Looper.prepare();
                         Toast.makeText(getApplicationContext(), "Location data sync failed :" + response.errorBody(), Toast.LENGTH_SHORT).show();
                     }
                 }

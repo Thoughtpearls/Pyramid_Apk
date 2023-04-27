@@ -1075,21 +1075,49 @@ public class AttendanceFragment extends Fragment {
                         if (employeeProfileLiveData.getValue().isTodaysClockIn()) {
                             editor.putString(LocationApp.CLOCK_IN, TrackerUtility.getDateString(new Date()));
                             isClockedIn = true;
-                            binding.checkInBtn.setBackgroundColor(Color.GRAY);
+                            if (binding!= null && binding.checkInBtn != null) {
+                                binding.checkInBtn.setBackgroundColor(Color.GRAY);
+                            } else {
+                                View view = getActivity().findViewById(R.id.checkInBtn);
+                                if (view != null) {
+                                    view.setBackgroundColor(Color.GRAY);
+                                }
+                            }
                         } else {
                             isClockedIn = false;
                             editor.putString(LocationApp.CLOCK_IN,"");
-                            binding.checkInBtn.setBackgroundColor(Color.WHITE);
+                            if (binding!= null && binding.checkInBtn != null) {
+                                binding.checkInBtn.setBackgroundColor(Color.WHITE);
+                            } else {
+                                View view = getActivity().findViewById(R.id.checkInBtn);
+                                if (view != null) {
+                                    view.setBackgroundColor(Color.WHITE);
+                                }
+                            }
                         }
 
                         if (employeeProfileLiveData.getValue().isTodaysClockOut()) {
                             isClockedOut = true;
                             editor.putString(LocationApp.CLOCK_OUT, TrackerUtility.getDateString(new Date()));
-                            binding.checkOutBtn.setBackgroundColor(Color.GRAY);
+                            if (binding!= null && binding.checkOutBtn != null) {
+                                binding.checkOutBtn.setBackgroundColor(Color.GRAY);
+                            } else {
+                                View view = getActivity().findViewById(R.id.checkOutBtn);
+                                if (view != null) {
+                                    view.setBackgroundColor(Color.GRAY);
+                                }
+                            }
                         } else {
                             isClockedOut = false;
                             editor.putString(LocationApp.CLOCK_OUT, "");
-                            binding.checkOutBtn.setBackgroundColor(Color.WHITE);
+                            if (binding!= null && binding.checkOutBtn != null) {
+                                binding.checkOutBtn.setBackgroundColor(Color.WHITE);
+                            } else {
+                                View view = getActivity().findViewById(R.id.checkOutBtn);
+                                if (view != null) {
+                                    view.setBackgroundColor(Color.WHITE);
+                                }
+                            }
                         }
                         editor.commit();
                     });

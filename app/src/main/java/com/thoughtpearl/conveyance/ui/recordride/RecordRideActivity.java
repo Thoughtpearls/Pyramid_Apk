@@ -507,7 +507,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
         } else if (TrackerUtility.isDeveloperModeEnabled(this)) {
-            Toast.makeText(getApplicationContext(), "Please turn off developer option from settings.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Please turn off developer option from settings before starting ride", Toast.LENGTH_LONG).show();
         } else if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(getApplicationContext(), "Please turn on device location.", Toast.LENGTH_LONG).show();
         } else {
@@ -1072,17 +1072,14 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                                 alertDialogBuilder.setTitle("Alert");
                                 alertDialogBuilder.setMessage("Before starting new ride you need to finish your incomplete or running rides.");
                                 alertDialogBuilder.setPositiveButton("Goto Rides", (dialogInterface, i) -> {
-
                                     Intent intent = new Intent(getApplicationContext(), BottomNavigationActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                     intent.putExtra("navigationId", R.id.navigation_ridedetails);
                                     startActivity(intent);
-                                    //NavController navController = Navigation.findNavController(LocationActivity.this, R.id.nav_host_fragment_activity_bottom_navigation);
-                                    //navController.navigate(R.id.navigation_ridedetails);
+                                    finish();
                                 });
                                 alertDialogBuilder.setNegativeButton("CANCEL", (dialogInterface, i) -> dialogInterface.dismiss());
                                 alertDialogBuilder.show();
-                                //Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG).show();
 
                             } else {
                                 showRidePurposeDialog();
