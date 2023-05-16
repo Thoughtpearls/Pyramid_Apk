@@ -47,6 +47,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -63,6 +64,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -94,6 +96,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -201,6 +204,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         mStartUpdatesButton = findViewById(R.id.start_updates_button);
         mStartUpdatesButton.setOnClickListener(view -> {
             try {
+                mStartUpdatesButton.setEnabled(false);
                 startUpdatesButtonHandler(view);
             } catch (Exception exception) {
                 LocationApp.logs("exception in startUpdatesButtonHandler :");
@@ -208,15 +212,13 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
         mStopUpdatesButton = findViewById(R.id.stop_updates_button);
-        mStopUpdatesButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    stopUpdatesButtonHandler(view);
-                } catch (Exception exception) {
-                    LocationApp.logs("exception in startUpdatesButtonHandler :");
-                    LocationApp.logs(exception);
-                }
+        mStopUpdatesButton.setOnClickListener(view -> {
+            try {
+                mStopUpdatesButton.setEnabled(false);
+                stopUpdatesButtonHandler(view);
+            } catch (Exception exception) {
+                LocationApp.logs("exception in startUpdatesButtonHandler :");
+                LocationApp.logs(exception);
             }
         });
         totalDurationTextView = findViewById(R.id.total_duration);
@@ -306,20 +308,30 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
 
             if (runningTripRecord != null && runningTripRecord.isStatus()) {
                 MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(this);
-                alertDialogBuilder.setCancelable(true);
                 alertDialogBuilder.setView(R.layout.complete_ride_layout);
                 AlertDialog alertDialog = alertDialogBuilder.show();
                 ((TextView)alertDialog.findViewById(R.id.rideDateTextView)).setText(TrackerUtility.getDateString(new Date()));
                 ((TextView)alertDialog.findViewById(R.id.rideAmountTextView)).setText(runningTripRecord.getReimbursementCost() != null && runningTripRecord.getReimbursementCost().trim().length() > 0 ? "Rs " +runningTripRecord.getReimbursementCost() : "Rs 0.0");
-                ((TextView)alertDialog.findViewById(R.id.distanceTravelledTextView)).setText(runningTripRecord.getTotalDistance() + " Km");
+                ((TextView)alertDialog.findViewById(R.id.distanceTravelledTextView)).setText(TrackerUtility.roundOffDouble(runningTripRecord.getTotalDistance()) + " Km");
                 ((TextView)alertDialog.findViewById(R.id.rideDurationTextView)).setText(MyService.timerCount.getValue());
-                ((TextView)alertDialog.findViewById(R.id.rideReasonTextView)).setText(ridePurposeList.stream().filter(rideReason -> rideReason.getId().equalsIgnoreCase(runningTripRecord.getRidePurposeId())).findFirst().get().getPurpose());
+                Optional<RideReason> rideReasonSearch = ridePurposeList.stream().filter(rideReason -> rideReason.getId().equalsIgnoreCase(runningTripRecord.getRidePurposeId())).findFirst();
+                if (rideReasonSearch.isPresent()) {
+                    ((TextView)alertDialog.findViewById(R.id.rideReasonTextView)).setText(rideReasonSearch.get().getPurpose());
+                } else {
+                    ((TextView)alertDialog.findViewById(R.id.rideReasonTextView)).setText("");
+                }
+
 
                 alertDialog.findViewById(R.id.okAlertButton).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
+                        reInitialize();
                         alertDialog.dismiss();
                     }
+                });
+
+                alertDialog.setOnDismissListener(dialogInterface -> {
+                    reInitialize();
                 });
             }
         });
@@ -328,6 +340,15 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             Log.d("TRIP", "locationListData: Service is running  : location update :" + locations);
             locationList = locations;
         });
+    }
+
+    private void reInitialize() {
+        mMap.clear();
+        totalDistance = 0.0f;
+        locationList = new ArrayList<>();
+        runningTripRecord = new TripRecord();
+        MyService.totalDistance.setValue(0d);
+        MyService.timerCount.setValue("00:00:00");
     }
 
     private void getRideReasonList(String username, String deviceId) {
@@ -375,9 +396,6 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
        //runningTripRecord = MyService.runningTripRecord.getValue();
        mRequestingLocationUpdates = (MyService.isTrackingOn.getValue() == null ? false : MyService.isTrackingOn.getValue());
         if (mRequestingLocationUpdates) {
-            //locationList = MyService.locationListData.getValue();
-            //locationList == null || locationList.size() == 0
-            if (true) {
                 AppExecutors.getInstance().getDiskIO().execute(() -> {
                     runningTripRecord = DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().getRunningTrip();
                     TripRecordLocationRelation locationRelation = null;
@@ -396,12 +414,6 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                         reDrawTravelPathOnMap(finalLocationRelation != null ? finalLocationRelation.getLocations() : new ArrayList<>());
                     });
                 });
-            } else {
-                //mRequestingLocationUpdates = true;
-                setButtonsEnabledState();
-                reDrawTravelPathOnMap(locationList);
-            }
-
         } else {
             updateUI();
         }
@@ -503,22 +515,31 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
      * updates have already been requested.
      */
     public void startUpdatesButtonHandler(View view) {
+        Log.d("TRIP", "startUpdatesButtonHandler clicked");
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
+            mStartUpdatesButton.setEnabled(true);
+            return;
         } else if (TrackerUtility.isDeveloperModeEnabled(this)) {
             Toast.makeText(getApplicationContext(), "Please turn off developer option from settings before starting ride", Toast.LENGTH_LONG).show();
+            mStartUpdatesButton.setEnabled(true);
+            return;
         } else if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(getApplicationContext(), "Please turn on device location.", Toast.LENGTH_LONG).show();
+            mStartUpdatesButton.setEnabled(true);
+            return;
         } else {
             SharedPreferences sharedPreferences = getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
             String checkInDate = sharedPreferences.getString(LocationApp.CLOCK_IN, "");
             if (!checkInDate.equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
                 Toast.makeText(getApplicationContext(), "Please mark attendance before starting ride", Toast.LENGTH_LONG).show();
+                mStartUpdatesButton.setEnabled(true);
                 return;
             }
             if (ridePurposeList.size() == 0) {
                 Toast.makeText(getApplicationContext(), "Cannot start ride without selecting reason", Toast.LENGTH_SHORT).show();
+                mStartUpdatesButton.setEnabled(true);
                 return;
             }
             fetchTodaysRides();
@@ -562,7 +583,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         if (Looper.myLooper() == null) {
             Looper.prepare();
         }
-        timerHandler = new Handler();
+         timerHandler = new Handler();
         seconds = iSeconds;
         timerRunnable = new Runnable() {
             @Override
@@ -603,6 +624,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
      * Handles the Stop Updates button, and requests removal of location updates.
      */
     public void stopUpdatesButtonHandler(View view) {
+        Log.d("TRIP", "stopUpdatesButtonHandler : clicked");
         // It is a good practice to remove location requests when the activity is in a paused or
         // stopped state. Doing so helps battery performance and is especially
         // recommended in applications that request frequent location updates.
@@ -628,6 +650,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                         LocationApp.showLoader(RecordRideActivity.this);
                         startService(intent);
                         stopLocationUpdates();
+                        NotificationManagerCompat.from(this).cancel(LocationApp.NOTIFICATION_ID);
                     });
                 }
             }, 3000);
@@ -692,13 +715,13 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         if (mRequestingLocationUpdates) {
             mStartUpdatesButton.setEnabled(false);
             mStartUpdatesButton.setVisibility(View.GONE);
-            /*new Handler().postDelayed(new Runnable() {
+            new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mStopUpdatesButton.setEnabled(true);
                     mStopUpdatesButton.setVisibility(View.VISIBLE);
                 }
-            }, 3000);*/
+            }, 3000);
 
         } else {
             mStartUpdatesButton.setEnabled(true);
@@ -762,12 +785,14 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                 dest = new LatLng(location.getLatitude(), location.getLongitude());
                 polylineOptions.add(dest);
             }
-            /*if (start != null && isServiceRunning ) {
+
+            if (start != null && isServiceRunning && locationList.size() == 1 ) {
                 MarkerOptions startMarkerOptions = new MarkerOptions();
+                startMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
                 startMarkerOptions.title("Start point");
                 startMarkerOptions.position(start);
                 mMap.addMarker(startMarkerOptions);
-            }*/
+            }
 
             /*if (dest != null && !isServiceRunning) {
                 MarkerOptions endMarkerOptions = new MarkerOptions();
@@ -1073,12 +1098,15 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                                 alertDialogBuilder.setMessage("Before starting new ride you need to finish your incomplete or running rides.");
                                 alertDialogBuilder.setPositiveButton("Goto Rides", (dialogInterface, i) -> {
                                     Intent intent = new Intent(getApplicationContext(), BottomNavigationActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                    //intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                                     intent.putExtra("navigationId", R.id.navigation_ridedetails);
                                     startActivity(intent);
                                     finish();
                                 });
-                                alertDialogBuilder.setNegativeButton("CANCEL", (dialogInterface, i) -> dialogInterface.dismiss());
+                                alertDialogBuilder.setNegativeButton("CANCEL", (dialogInterface, i) -> {
+                                    dialogInterface.dismiss();
+                                    mStartUpdatesButton.setEnabled(true);
+                                });
                                 alertDialogBuilder.show();
 
                             } else {
@@ -1090,15 +1118,23 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                 @Override
                 public void onFailure(Call<SearchRideResponse> call, Throwable t) {
                     Toast.makeText(RecordRideActivity.this, "Ride can not start at the moment. Please try after sometime.", Toast.LENGTH_LONG).show();
+                    mStartUpdatesButton.setEnabled(true);
                 }
             });
             //}
         });
     }
 
+    boolean isRidePurposeOkButtonClicked = false;
     public void showRidePurposeDialog() {
         CustomDialog dialog = new CustomDialog(this, ridePurposeList);
         dialog.show(dialogInterface -> {
+            Log.d("TRIP", "showRidePurposeDialog button clicked");
+            if (isRidePurposeOkButtonClicked) {
+                Log.d("TRIP", "showRidePurposeDialog button already clicked");
+                return;
+            }
+            isRidePurposeOkButtonClicked = true;
             Date myDate = new Date();
             String startDate = TrackerUtility.getDateString(myDate);
             String startTime = TrackerUtility.getTimeString(myDate);
@@ -1117,6 +1153,9 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
 
             if (!TrackerUtility.checkConnection(getApplicationContext())) {
                 Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
+                isRidePurposeOkButtonClicked = false;
+                mStartUpdatesButton.setEnabled(true);
+                return;
             } else {
 
                 Call<String> createRideCall = ApiHandler.getClient().createRide(LocationApp.getUserName(this), LocationApp.DEVICE_ID, params);
@@ -1132,13 +1171,17 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                             if (response.code() == 401) {
                                 message = "Can not start ride at the moment. Your account is blocked";
                             }
+                            mStartUpdatesButton.setEnabled(true);
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
                         }
+                        isRidePurposeOkButtonClicked = false;
                     }
 
                     @Override
                     public void onFailure(Call<String> call, Throwable t) {
                         Toast.makeText(getApplicationContext(), "Issue in starting Ride. Please try after sometime.", Toast.LENGTH_LONG).show();
+                        mStartUpdatesButton.setEnabled(true);
+                        isRidePurposeOkButtonClicked = false;
                     }
                 });
             }

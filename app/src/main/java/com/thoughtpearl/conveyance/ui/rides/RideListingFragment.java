@@ -1,5 +1,6 @@
 package com.thoughtpearl.conveyance.ui.rides;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -72,6 +73,14 @@ public class RideListingFragment extends Fragment {
         return fragment;
     }
 
+    Activity mActivity;
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mActivity = (Activity) context;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,8 +99,8 @@ public class RideListingFragment extends Fragment {
             @Override
             public void onRefresh() {
                 Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
-                if (!TrackerUtility.checkConnection(getActivity())) {
-                    Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+                if (!TrackerUtility.checkConnection(mActivity)) {
+                    Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
                     swipeRefreshLayout.setRefreshing(false);
                 } else {
                     fetchTodaysRides(list, emptyRideTextview, errorAnimation, context, recyclerView);
@@ -111,8 +120,8 @@ public class RideListingFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
             }
 
-            if (!TrackerUtility.checkConnection(getActivity())) {
-                Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+            if (!TrackerUtility.checkConnection(mActivity)) {
+                Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
                 swipeRefreshLayout.setRefreshing(false);
             } else {
                 fetchTodaysRides(list, emptyRideTextview, errorAnimation, context, recyclerView);
@@ -120,13 +129,13 @@ public class RideListingFragment extends Fragment {
 
             recyclerView.setAdapter(new MyItemRecyclerViewAdapter(tripRecordList, context));
             recyclerView.addOnItemTouchListener(
-                    new RecyclerItemClickListener(getActivity(), new   RecyclerItemClickListener.OnItemClickListener() {
+                    new RecyclerItemClickListener(mActivity, new   RecyclerItemClickListener.OnItemClickListener() {
                         @Override
                         public void onItemClick(View view, int position) {
                             // TODO Handle item click
                             Log.e("@@@@@","" + position);
                             //Toast.makeText(getContext(), "Test :" + position, Toast.LENGTH_LONG).show();
-                            Intent intent = new Intent(getActivity(), RideDetailsActivity.class);
+                            Intent intent = new Intent(mActivity, RideDetailsActivity.class);
                             intent.putExtra("rideId", tripRecordList.get(position).getId());
                             intent.putExtra("isInCompleteRide", (tripRecordList.get(position).getRideEndTime() == null));
                             startActivity(intent);
@@ -143,15 +152,15 @@ public class RideListingFragment extends Fragment {
     private void fetchTodaysRides(View list, TextView emptyRideTextview,LottieAnimationView animationView,  Context context, RecyclerView recyclerView, boolean showLoader) {
         Dialog dailog = null;
         if (showLoader) {
-            dailog = LocationApp.showLoader(getActivity());
+            dailog = LocationApp.showLoader(mActivity);
         }
         animationView.setVisibility(View.GONE);
         Dialog finalDailog = dailog;
         AppExecutors.getInstance().getNetworkIO().execute(() -> {
-            //tripRecordList = DatabaseClient.getInstance(getActivity()).getTripDatabase().tripRecordDao().getAllRides();
+            //tripRecordList = DatabaseClient.getInstance(mActivity).getTripDatabase().tripRecordDao().getAllRides();
             Log.d("TRIP", "trip count is :" + tripRecordList.size());
             /*if (tripRecordList != null && tripRecordList.size() > 0) {
-                getActivity().runOnUiThread(() -> {
+                mActivity.runOnUiThread(() -> {
                     recyclerView.setAdapter(new MyItemRecyclerViewAdapter(tripRecordList, context));
                 });
             } else {*/
@@ -159,7 +168,7 @@ public class RideListingFragment extends Fragment {
                 Date today = Calendar.getInstance().getTime();
                 //today = TrackerUtility.convertStringToDate("2022-12-27");
                 SearchRideFilter filter = new SearchRideFilter(TrackerUtility.getDateString(today), TrackerUtility.getDateString(today));
-                Call<SearchRideResponse> searchRideStatisticsCall = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID, filter);
+                Call<SearchRideResponse> searchRideStatisticsCall = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID, filter);
                 searchRideStatisticsCall.enqueue(new Callback<SearchRideResponse>() {
                     @Override
                     public void onResponse(Call<SearchRideResponse> call, Response<SearchRideResponse> response) {

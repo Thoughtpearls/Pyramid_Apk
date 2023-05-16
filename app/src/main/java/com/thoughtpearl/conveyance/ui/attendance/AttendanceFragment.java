@@ -64,6 +64,9 @@ import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
 import com.thoughtpearl.conveyance.services.MyService;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -80,6 +83,7 @@ import java.util.stream.Collectors;
 
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -97,7 +101,13 @@ public class AttendanceFragment extends Fragment {
     private static boolean isClockedOut = false;
     private String customStartDate;
     private String customEndDate;
+    Activity mActivity;
 
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mActivity = (Activity) context;
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -122,9 +132,9 @@ public class AttendanceFragment extends Fragment {
              @Override
              public void onRefresh() {
                 Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
-                 if (!TrackerUtility.checkConnection(getActivity())) {
-                     Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
-                     binding.swipeRefreshLayout.setRefreshing(false);
+                 if (!TrackerUtility.checkConnection(mActivity)) {
+                     Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
+                     setSwipeLayoutIsRefreshing(false);
                  } else {
                      calculateLeave(false);
 
@@ -132,7 +142,7 @@ public class AttendanceFragment extends Fragment {
              }
          });
 
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
         AtomicReference<String> checkInDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
         AtomicReference<String> checkOutDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
         AtomicReference<Boolean> isRideDisabled = new AtomicReference<>(sharedPreferences.getBoolean("rideDisabled", false));
@@ -153,9 +163,9 @@ public class AttendanceFragment extends Fragment {
         }
 
         binding.checkInBtn.setOnClickListener(view -> {
-            LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+            LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
             if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                Toast.makeText(getActivity(), "Please turn on device location.", Toast.LENGTH_LONG).show();
+                Toast.makeText(mActivity, "Please turn on device location.", Toast.LENGTH_LONG).show();
                 return;
             }
                 checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
@@ -169,7 +179,7 @@ public class AttendanceFragment extends Fragment {
                 }
 
                 if (isClockedIn) {
-                    Toast.makeText(getActivity(), "You are already Check In", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "You are already Check In", Toast.LENGTH_LONG).show();
                     return;
                 }
 
@@ -180,7 +190,7 @@ public class AttendanceFragment extends Fragment {
                     Uri photoURI = null;
                     if (checkInImageFile != null) {
                         photoURI = FileProvider.getUriForFile(
-                                getActivity(),
+                                mActivity,
                                 "com.thoughtpearl.conveyance.fileprovider",
                                 checkInImageFile
                         );
@@ -197,9 +207,9 @@ public class AttendanceFragment extends Fragment {
         });
 
         binding.checkOutBtn.setOnClickListener(view -> {
-                LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
                 if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    Toast.makeText(getActivity(), "Please turn on device location.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "Please turn on device location.", Toast.LENGTH_LONG).show();
                     return;
                 }
                 checkInDate.set(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
@@ -221,11 +231,11 @@ public class AttendanceFragment extends Fragment {
                 }
 
                 if (!isClockedIn) {
-                    Toast.makeText(getActivity(), "You have not Check In today.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "You have not Check In today.", Toast.LENGTH_LONG).show();
                     return;
                 }
                 if (isClockedOut) {
-                    Toast.makeText(getActivity(), "You are already Check Out", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "You are already Check Out", Toast.LENGTH_LONG).show();
                     return;
                 }
 
@@ -236,9 +246,9 @@ public class AttendanceFragment extends Fragment {
                         // Continue only if the File was successfully created
                         Uri photoURI = null;
                         if (checkOutImageFile != null) {
-                            //String packageName = getActivity().getApplicationContext().getPackageName();
+                            //String packageName = mActivity.getApplicationContext().getPackageName();
                             photoURI = FileProvider.getUriForFile(
-                                    getActivity(),
+                                    mActivity,
                                     "com.thoughtpearl.conveyance.fileprovider",
                                     checkOutImageFile
                             );
@@ -261,7 +271,7 @@ public class AttendanceFragment extends Fragment {
         //CalendarView calendarView = binding.attendanceCalendarView;
 
         // If Activity is created after rotation
-        if (savedInstanceState != null) {
+        if (savedInstanceState != null && caldroidFragment != null) {
             caldroidFragment.restoreStatesFromKey(savedInstanceState,
                     "CALDROID_SAVED_STATE");
         } else {
@@ -278,7 +288,7 @@ public class AttendanceFragment extends Fragment {
                 t.replace(R.id.calender_container, caldroidFragment);
                 t.commit();
             /*} else {
-                FragmentTransaction t = getActivity().getSupportFragmentManager().beginTransaction();
+                FragmentTransaction t = mActivity.getSupportFragmentManager().beginTransaction();
                 t.replace(R.id.calender_container, caldroidFragment);
                 t.commit();
             }*/
@@ -286,9 +296,9 @@ public class AttendanceFragment extends Fragment {
 
         LocationApp.leavesDetailsMutableLiveData.observe(getViewLifecycleOwner(), getLeavesDetailsObserver());
 
-        if (!TrackerUtility.checkConnection(getActivity())) {
-            Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
-            binding.swipeRefreshLayout.setRefreshing(false);
+        if (!TrackerUtility.checkConnection(mActivity)) {
+            Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
+            setSwipeLayoutIsRefreshing(false);
         } else {
             calculateLeave(true);
         }
@@ -374,7 +384,7 @@ public class AttendanceFragment extends Fragment {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             firstDateOfTheMonth = LocalDate.now().withMonth(month).with(TemporalAdjusters.firstDayOfMonth());
         }
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
         AtomicReference<String> checkInDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_IN, ""));
         AtomicReference<String> checkOutDate = new AtomicReference<>(sharedPreferences.getString(LocationApp.CLOCK_OUT, ""));
         if (checkInDate.get().trim().length() > 0 &&  checkInDate.get().equalsIgnoreCase(TrackerUtility.getDateString(new Date()))) {
@@ -445,17 +455,17 @@ public class AttendanceFragment extends Fragment {
     }
 
     public void markAttendance(String imagePath, Attendance attendance, AlertDialog alertDialog) {
-        if (!TrackerUtility.checkConnection(getActivity())) {
-            Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+        if (!TrackerUtility.checkConnection(mActivity)) {
+            Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
         } else {
 
-            Dialog dailog = LocationApp.showLoader(getActivity());
+            Dialog dailog = LocationApp.showLoader(mActivity);
 
             RequestBody type = RequestBody.create(MediaType.parse("text/plain"), attendance.getType());
             RequestBody date = RequestBody.create(MediaType.parse("text/plain"), attendance.getDate());
             RequestBody time = RequestBody.create(MediaType.parse("text/plain"), attendance.getTime());
 
-            String username = LocationApp.getUserName(getActivity());
+            String username = LocationApp.getUserName(mActivity);
             String deviceId = LocationApp.DEVICE_ID;
             Map<String, RequestBody> bodyMap = new HashMap<>();
             bodyMap.put("date", date);
@@ -482,8 +492,99 @@ public class AttendanceFragment extends Fragment {
                 bodyMap.put("longitude", longitude);
             }
 
-            Call<String> markAttendanceCall = ApiHandler.getClient().markAttendance(username, deviceId, bodyMap);
-            markAttendanceCall.enqueue(new Callback<String>() {
+            Call<ResponseBody> markAttendanceCall = ApiHandler.getClient().markAttendance(username, deviceId, bodyMap);
+            AppExecutors.getInstance().getNetworkIO().execute(() -> {
+                try {
+                    Response<ResponseBody> response = markAttendanceCall.execute();
+                    mActivity.runOnUiThread(() -> {
+                        if (response.code() == 201 || response.code() == 200) {
+                            LocationApp.logs("username :" + username + " attendance : " + deviceId + "response :" + response.code());
+                            if (response.code() == 201 || response.code() == 200) {
+                                if (attendance.getType() == LocationApp.ON_LEAVE) {
+                                    if (alertDialog != null) {
+                                        alertDialog.dismiss();
+                                        //new Handler().postDelayed(() -> calculateLeave(true), 5000);
+                                    }
+                                    Toast.makeText(mActivity, "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Log.d("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
+                                    Toast.makeText(mActivity, "Attendance marked successfully", Toast.LENGTH_SHORT).show();
+                                    SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
+                                        new Handler().postDelayed(() -> calculateLeave(true), 2000);
+                                        editor.putString(LocationApp.CLOCK_IN, attendance.getDate());
+                                        editor.commit();
+                                        new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
+                                        isClockedIn = true;
+                                    } else if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_OUT)) {
+                                        editor.putString(LocationApp.CLOCK_OUT, attendance.getDate());
+                                        editor.commit();
+                                        new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
+                                        isClockedOut = true;
+                                    }
+                                }
+                            } else {
+                                LocationApp.logs("username :" + username + " attendance : " + deviceId + "response : Else block attendance.getType()" + attendance.getType());
+                                LocationApp.logs("markAttendance", "username :" + username + " attendance : " + deviceId + "response : Else block");
+                                Log.d("TRIP", "Error :" + response.errorBody());
+                                String message = "Attendance not marked";
+                                if (attendance.getType() == LocationApp.ON_LEAVE) {
+                                    message = "Leave not applied. Please try after sometime.";
+                                }
+                                Toast.makeText(mActivity, "else block : " + message, Toast.LENGTH_SHORT).show();
+                            }
+                        } else if (response.code() == 400) {
+                            String errorMessage = "Something went wrong. Please try again";
+                            if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
+                                errorMessage = "Its seems you have already checkIn for a day";
+                            } else  if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_OUT))  {
+                                errorMessage = "Its seems you have already checkout for a day";
+                            } else  if (attendance.getType().equalsIgnoreCase(LocationApp.ON_LEAVE))  {
+                                errorMessage = "Its seems you have applied leaves on sunday which is not allowed";
+                            }
+
+                            try {
+                                JSONObject jsonObject = new JSONObject(new String(response.errorBody().bytes()));
+                                 if (jsonObject.has("message")) {
+                                     errorMessage = jsonObject.getString("message");
+                                 }
+                            }  catch (JSONException | IOException e) {
+                                e.printStackTrace();
+                            }
+                            Toast.makeText(mActivity, errorMessage, Toast.LENGTH_SHORT).show();
+                            SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
+                                new Handler().postDelayed(() -> calculateLeave(true), 2000);
+                                editor.putString(LocationApp.CLOCK_IN, attendance.getDate());
+                                editor.commit();
+                                new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
+                                isClockedIn = true;
+                            } else if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_OUT)) {
+                                editor.putString(LocationApp.CLOCK_OUT, attendance.getDate());
+                                editor.commit();
+                                new Handler().postDelayed(() -> binding.checkInBtn.setBackgroundColor(Color.GRAY), 1000);
+                                isClockedOut = true;
+                            }
+                        } else {
+                            LocationApp.logs("markAttendance",  "onFailure username :" + username +" attendance : " + deviceId + " attendance.getType() " + attendance.getType());
+                            LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Error block");
+                            Toast.makeText(mActivity, "Attendance not marked", Toast.LENGTH_SHORT).show();
+                        }
+                        dailog.dismiss();
+                    });
+                } catch (Exception e) {
+                    mActivity.runOnUiThread(()->{
+                        LocationApp.logs("markAttendance",  "onFailure username :" + username +" attendance : " + deviceId + " attendance.getType() " + attendance.getType());
+                        LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Error block");
+                        Toast.makeText(mActivity, "exception :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        dailog.dismiss();
+                    });
+                }
+            });
+
+           /* markAttendanceCall.enqueue(new Callback<String>() {
                 @Override
                 public void onResponse(Call<String> call, Response<String> response) {
                     LocationApp.logs("username :" + username +" attendance : " + deviceId + "response :" + response.code());
@@ -493,11 +594,11 @@ public class AttendanceFragment extends Fragment {
                                 alertDialog.dismiss();
                                 //new Handler().postDelayed(() -> calculateLeave(true), 5000);
                             }
-                            Toast.makeText(getActivity(), "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(mActivity, "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
                         } else {
                             Log.d("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
-                            Toast.makeText(getActivity(), "Attendance marked successfully", Toast.LENGTH_SHORT).show();
-                            SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                            Toast.makeText(mActivity, "Attendance marked successfully", Toast.LENGTH_SHORT).show();
+                            SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             if (attendance.getType().equalsIgnoreCase(LocationApp.CLOCK_IN)) {
                                 new Handler().postDelayed(() -> calculateLeave(true), 2000);
@@ -520,7 +621,7 @@ public class AttendanceFragment extends Fragment {
                         if (attendance.getType() == LocationApp.ON_LEAVE) {
                             message = "Leave not applied. Please try after sometime.";
                         }
-                        Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mActivity, message, Toast.LENGTH_SHORT).show();
                     }
                     dailog.dismiss();
                 }
@@ -529,10 +630,10 @@ public class AttendanceFragment extends Fragment {
                 public void onFailure(Call<String> call, Throwable t) {
                     LocationApp.logs("markAttendance",  "onFailure username :" + username +" attendance : " + deviceId + " attendance.getType() " + attendance.getType());
                     LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Error block");
-                    Toast.makeText(getActivity(), "Attendance not marked", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mActivity, "Attendance not marked", Toast.LENGTH_SHORT).show();
                     dailog.dismiss();
                 }
-            });
+            }); */
         }
     }
 
@@ -545,11 +646,11 @@ public class AttendanceFragment extends Fragment {
         String date = TrackerUtility.getDateString(myDate);
         String time = TrackerUtility.getTimeString(myDate);
 
-        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = locationManager.getBestProvider(criteria, true);
         LocationApp.logs("Attendance : onActivityResult : provider :" + provider);
-        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -645,7 +746,7 @@ public class AttendanceFragment extends Fragment {
              try {
                  Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                  intent.addCategory("android.intent.category.DEFAULT");
-                 Uri uri = Uri.fromParts("package", getActivity().getPackageName(), null);
+                 Uri uri = Uri.fromParts("package", mActivity.getPackageName(), null);
                  intent.setData(uri);
                  startActivityForResult(intent, 101);
              } catch (Exception exception) {
@@ -654,7 +755,7 @@ public class AttendanceFragment extends Fragment {
                  startActivityForResult(intent, 101);
              }
         } else {
-            ActivityCompat.requestPermissions(getActivity(), new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
+            ActivityCompat.requestPermissions(mActivity, new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE}, 101);
         }
     }
@@ -663,16 +764,16 @@ public class AttendanceFragment extends Fragment {
         boolean shouldProvideRationale = false;
         if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             shouldProvideRationale =
-                    ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                    ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
                             Manifest.permission.ACCESS_COARSE_LOCATION);
         } else {
             shouldProvideRationale =
-                    ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                    ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+                            Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
+                            Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(mActivity,
                             Manifest.permission.ACCESS_COARSE_LOCATION);
         }
 
@@ -681,13 +782,13 @@ public class AttendanceFragment extends Fragment {
         if (shouldProvideRationale) {
             Log.i("TRIP", "Displaying permission rationale to provide additional context.");
 
-            ActivityCompat.requestPermissions(getActivity(),
+            ActivityCompat.requestPermissions(mActivity,
                     new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_CODE);
             /*showSnackbar(R.string.permission_rationale,
                     android.R.string.ok, view -> {
                         // Request permission
-                        ActivityCompat.requestPermissions(getActivity(),
+                        ActivityCompat.requestPermissions(mActivity,
                                 new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE},
                                 REQUEST_CODE);
                     });*/
@@ -702,7 +803,7 @@ public class AttendanceFragment extends Fragment {
                 permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION};
             }
 
-            ActivityCompat.requestPermissions(getActivity(),
+            ActivityCompat.requestPermissions(mActivity,
                     permissions,
                     REQUEST_CODE);
 
@@ -718,7 +819,7 @@ public class AttendanceFragment extends Fragment {
      */
     private void showSnackbar(final int mainTextStringId, final int actionStringId,
                               View.OnClickListener listener) {
-        Snackbar.make(getActivity().findViewById(android.R.id.content),
+        Snackbar.make(mActivity.findViewById(android.R.id.content),
                         getString(mainTextStringId),
                         Snackbar.LENGTH_INDEFINITE )
                 .setAction(getString(actionStringId), listener).show();
@@ -772,7 +873,7 @@ public class AttendanceFragment extends Fragment {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = this.getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File storageDir = this.mActivity.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = null;
         try {
             image = createTempFile(
@@ -792,11 +893,11 @@ public class AttendanceFragment extends Fragment {
     public void calculateLeave(boolean showLoader) {
         Dialog dialog = null;
         if (showLoader) {
-            dialog = LocationApp.showLoader(getActivity());
+            dialog = LocationApp.showLoader(mActivity);
         }
-        binding.attendanceLayout.setVisibility(View.VISIBLE);
-        binding.errorAnimation.setVisibility(View.GONE);
-        Call<LeavesDetails> leavesDetailsCAll= ApiHandler.getClient().getLeaveDetails(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID);
+        setAttendanceLayoutVisibility(View.VISIBLE);
+        setErrorLayoutVisibility(View.GONE);
+        Call<LeavesDetails> leavesDetailsCAll= ApiHandler.getClient().getLeaveDetails(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID);
         Dialog finalDialog = dialog;
         leavesDetailsCAll.enqueue(new Callback<LeavesDetails>() {
             @Override
@@ -804,12 +905,12 @@ public class AttendanceFragment extends Fragment {
                 if (response.code() == 200 || response.code() == 201) {
                    LeavesDetails leavesDetails = response.body();
                    LocationApp.leavesDetailsMutableLiveData.setValue(leavesDetails);
-                   String username = LocationApp.getUserName(getActivity());
-                   String deviceId = TrackerUtility.getDeviceId(getActivity());
+                   String username = LocationApp.getUserName(mActivity);
+                   String deviceId = TrackerUtility.getDeviceId(mActivity);
                    getEmployeeProfile(username, deviceId);
                 } else {
                     Log.d("TRIP", String.valueOf(response));
-                    Toast.makeText(getActivity(), "Leaves details not retried", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mActivity, "Leaves details not retried", Toast.LENGTH_SHORT).show();
                 }
                 //call employeeProfile
 
@@ -817,35 +918,65 @@ public class AttendanceFragment extends Fragment {
                     if (showLoader) {
                         finalDialog.dismiss();
                     }
-                    if (binding != null && binding.swipeRefreshLayout != null) {
-                        binding.swipeRefreshLayout.setRefreshing(false);
-                    } else {
-                       SwipeRefreshLayout swipeRefreshLayout = getActivity().findViewById(R.id.swipeRefreshLayout);
-                       if (swipeRefreshLayout != null) {
-                           swipeRefreshLayout.setRefreshing(false);
-                       }
-                    }
+                    setSwipeLayoutIsRefreshing(false);
                 }, 2000);
             }
 
             @Override
             public void onFailure(Call<LeavesDetails> call, Throwable t) {
-                Toast.makeText(getActivity(), "Leaves details not retried", Toast.LENGTH_SHORT).show();
-                if (showLoader) {
-                    finalDialog.dismiss();
-                }
-                binding.attendanceLayout.setVisibility(View.GONE);
-                binding.errorAnimation.setVisibility(View.VISIBLE);
-                binding.swipeRefreshLayout.setRefreshing(false);
+
+                new Handler().postDelayed(()-> {
+                    Toast.makeText(mActivity, "Leaves details not retried", Toast.LENGTH_SHORT).show();
+                    if (showLoader) {
+                        finalDialog.dismiss();
+                    }
+
+                    setAttendanceLayoutVisibility(View.GONE);
+                    setErrorLayoutVisibility(View.VISIBLE);
+                    setSwipeLayoutIsRefreshing(false);
+                }, 2000);
             }
         });
+    }
+
+    private void setSwipeLayoutIsRefreshing(boolean isRefreshing) {
+        if (binding != null && binding.swipeRefreshLayout != null) {
+            binding.swipeRefreshLayout.setRefreshing(isRefreshing);
+        } else {
+            SwipeRefreshLayout swipeRefreshLayout = mActivity.findViewById(R.id.swipeRefreshLayout);
+            if (swipeRefreshLayout != null) {
+                swipeRefreshLayout.setRefreshing(isRefreshing);
+            }
+        }
+    }
+
+    private void setErrorLayoutVisibility(int visibility) {
+        if (binding != null && binding.errorAnimation != null) {
+            binding.errorAnimation.setVisibility(visibility);
+        } else {
+            View errorAnimationView = mActivity.findViewById(R.id.errorAnimation);
+            if (errorAnimationView != null) {
+                errorAnimationView.setVisibility(visibility);
+            }
+        }
+    }
+
+    private void setAttendanceLayoutVisibility(int visibility) {
+        if (binding != null && binding.attendanceLayout != null) {
+            binding.attendanceLayout.setVisibility(visibility);
+        } else {
+            View attendanceLayoutView = mActivity.findViewById(R.id.attendanceLayout);
+            if (attendanceLayoutView != null) {
+                attendanceLayoutView.setVisibility(visibility);
+            }
+        }
     }
 
     private void showLeavesAlertDialog() {
         customStartDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
         customEndDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
 
-        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(getActivity());
+        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(mActivity);
         alertDialogBuilder.setCancelable(true);
         alertDialogBuilder.setView(R.layout.date_picker_layout);
         AlertDialog alertDialog = alertDialogBuilder.show();
@@ -858,7 +989,7 @@ public class AttendanceFragment extends Fragment {
         alertDialog.findViewById(R.id.toDateTextView).setVisibility(View.GONE);
         alertDialog.findViewById(R.id.okAlertButton).setOnClickListener(view-> {
             /*if (!TrackerUtility.convertStringToDate(customEndDate).after(TrackerUtility.convertStringToDate(customStartDate))) {
-                Toast.makeText(getActivity(), "From Date should not be less than To Date", Toast.LENGTH_LONG).show();
+                Toast.makeText(mActivity, "From Date should not be less than To Date", Toast.LENGTH_LONG).show();
             } else*/
             {
                 LocalDate localDate = null;
@@ -867,14 +998,14 @@ public class AttendanceFragment extends Fragment {
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (localDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
-                        Toast.makeText(getActivity(), "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
+                        Toast.makeText(mActivity, "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
                         return;
                     }
                 }
 
                 String reasonForLeave = ((EditText) alertDialog.findViewById(R.id.leaveReasonEditText)).getText().toString();
                 if (reasonForLeave.trim().length() == 0) {
-                    Toast.makeText(getActivity(), "Please enter reason for leave", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "Please enter reason for leave", Toast.LENGTH_LONG).show();
                     return;
                 }
 
@@ -883,23 +1014,23 @@ public class AttendanceFragment extends Fragment {
                         LocationApp.leavesDetailsMutableLiveData.getValue() != null) {
                    int count = LocationApp.leavesDetailsMutableLiveData.getValue().getHolidays().stream().filter(attendanceDetails -> attendanceDetails.getDate().equalsIgnoreCase(customStartDate)).collect(Collectors.toList()).size();
                     if (count > 0) {
-                        Toast.makeText(getActivity(), "Can not apply leaves on public holidays", Toast.LENGTH_LONG).show();
+                        Toast.makeText(mActivity, "Can not apply leaves on public holidays", Toast.LENGTH_LONG).show();
                         return;
                     }
 
                     int alreadyLeaveCount = LocationApp.leavesDetailsMutableLiveData.getValue().getAttendancesByYear().stream().filter(attendanceDetails -> attendanceDetails.getDate().equalsIgnoreCase(customStartDate)).collect(Collectors.toList()).size();
                     if (alreadyLeaveCount > 0) {
-                        Toast.makeText(getActivity(), "You have already applied for leave.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(mActivity, "You have already applied for leave.", Toast.LENGTH_LONG).show();
                         return;
                     }
                 }
 
                 String date = TrackerUtility.getDateString(myDate);
                 String time = TrackerUtility.getTimeString(myDate);
-                LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
                 Criteria criteria = new Criteria();
                 String provider = locationManager.getBestProvider(criteria, true);
-                if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
                     // here to request the missing permissions, and then overriding
@@ -951,7 +1082,7 @@ public class AttendanceFragment extends Fragment {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (localDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
-                    Toast.makeText(getActivity(), "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "Sorry, Cannot mark leave on sundays", Toast.LENGTH_LONG).show();
                     return;
                 }
             }
@@ -967,7 +1098,7 @@ public class AttendanceFragment extends Fragment {
             mCalendar.set(Calendar.DAY_OF_MONTH, i2);
 
             if (!convertStringToDate(customStartDate).before(mCalendar.getTime())) {
-                Toast.makeText(getActivity(), "ToDate can not be less than FromDate", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mActivity, "ToDate can not be less than FromDate", Toast.LENGTH_SHORT).show();
                 return;
             }
             customEndDate = TrackerUtility.getDateString(mCalendar.getTime());
@@ -979,12 +1110,12 @@ public class AttendanceFragment extends Fragment {
         ((TextView)alertDialog.findViewById(R.id.fromDateTextView)).setText(sToDate);
 
         alertDialog.findViewById(R.id.fromDateTextView).setOnClickListener(view -> {
-            //Toast.makeText(getActivity(), "From date clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(mActivity, "From date clicked", Toast.LENGTH_SHORT).show();
             showCalender(fromDateListener);
         });
 
         /*alertDialog.findViewById(R.id.toDateTextView).setOnClickListener(view -> {
-            //Toast.makeText(getActivity(), "To date clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(mActivity, "To date clicked", Toast.LENGTH_SHORT).show();
             showCalender(toDateListener);
         });*/
     }
@@ -994,7 +1125,7 @@ public class AttendanceFragment extends Fragment {
         int year = mCalendar.get(Calendar.YEAR);
         int month = mCalendar.get(Calendar.MONTH);
         int dayOfMonth = mCalendar.get(Calendar.DAY_OF_MONTH);
-        new DatePickerDialog(getActivity(), dateListener, year, month, dayOfMonth).show();
+        new DatePickerDialog(mActivity, dateListener, year, month, dayOfMonth).show();
     }
 
     private void fetchTodaysRides() {
@@ -1003,7 +1134,7 @@ public class AttendanceFragment extends Fragment {
             Date today = Calendar.getInstance().getTime();
             //today = TrackerUtility.convertStringToDate("2022-12-27");
             SearchRideFilter filter = new SearchRideFilter(TrackerUtility.getDateString(today), TrackerUtility.getDateString(today));
-            Call<SearchRideResponse> searchRideStatisticsCall = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID, filter);
+            Call<SearchRideResponse> searchRideStatisticsCall = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID, filter);
             searchRideStatisticsCall.enqueue(new Callback<SearchRideResponse>() {
                 @Override
                 public void onResponse(Call<SearchRideResponse> call, Response<SearchRideResponse> response) {
@@ -1014,7 +1145,7 @@ public class AttendanceFragment extends Fragment {
                             int incompleteRidesCount = tripRecordList.stream().filter(ride -> ride.getRideEndTime() ==null).collect(Collectors.toList()).size();
                             if (incompleteRidesCount > 0) {
 
-                                MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(getActivity());
+                                MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(mActivity);
                                 alertDialogBuilder.setCancelable(true);
                                 alertDialogBuilder.setTitle("Alert");
                                 alertDialogBuilder.setMessage("Before checkout you need to finish your incomplete or running rides.");
@@ -1024,7 +1155,7 @@ public class AttendanceFragment extends Fragment {
                                         Intent intent = new Intent(getContext(), RecordRideActivity.class);
                                         startActivity(intent);
                                     } else {
-                                        NavController navController = Navigation.findNavController(getActivity(), R.id.nav_host_fragment_activity_bottom_navigation);
+                                        NavController navController = Navigation.findNavController(mActivity, R.id.nav_host_fragment_activity_bottom_navigation);
                                         navController.navigate(R.id.navigation_ridedetails);
                                     }
                                 });
@@ -1038,9 +1169,9 @@ public class AttendanceFragment extends Fragment {
                                 // Continue only if the File was successfully created
                                 Uri photoURI = null;
                                 if (checkOutImageFile != null) {
-                                    //String packageName = getActivity().getApplicationContext().getPackageName();
+                                    //String packageName = mActivity.getApplicationContext().getPackageName();
                                     photoURI = FileProvider.getUriForFile(
-                                            getActivity(),
+                                            mActivity,
                                             "com.thoughtpearl.conveyance.fileprovider",
                                             checkOutImageFile
                                     );
@@ -1069,8 +1200,8 @@ public class AttendanceFragment extends Fragment {
             public void onResponse(Call<EmployeeProfile> call, Response<EmployeeProfile> response) {
                 if (response.code() == 200) {
                     employeeProfileLiveData.setValue(response.body());
-                    getActivity().runOnUiThread(() -> {
-                        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
+                    mActivity.runOnUiThread(() -> {
+                        SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = sharedPreferences.edit();
                         if (employeeProfileLiveData.getValue().isTodaysClockIn()) {
                             editor.putString(LocationApp.CLOCK_IN, TrackerUtility.getDateString(new Date()));
@@ -1078,7 +1209,7 @@ public class AttendanceFragment extends Fragment {
                             if (binding!= null && binding.checkInBtn != null) {
                                 binding.checkInBtn.setBackgroundColor(Color.GRAY);
                             } else {
-                                View view = getActivity().findViewById(R.id.checkInBtn);
+                                View view = mActivity.findViewById(R.id.checkInBtn);
                                 if (view != null) {
                                     view.setBackgroundColor(Color.GRAY);
                                 }
@@ -1089,7 +1220,7 @@ public class AttendanceFragment extends Fragment {
                             if (binding!= null && binding.checkInBtn != null) {
                                 binding.checkInBtn.setBackgroundColor(Color.WHITE);
                             } else {
-                                View view = getActivity().findViewById(R.id.checkInBtn);
+                                View view = mActivity.findViewById(R.id.checkInBtn);
                                 if (view != null) {
                                     view.setBackgroundColor(Color.WHITE);
                                 }
@@ -1102,7 +1233,7 @@ public class AttendanceFragment extends Fragment {
                             if (binding!= null && binding.checkOutBtn != null) {
                                 binding.checkOutBtn.setBackgroundColor(Color.GRAY);
                             } else {
-                                View view = getActivity().findViewById(R.id.checkOutBtn);
+                                View view = mActivity.findViewById(R.id.checkOutBtn);
                                 if (view != null) {
                                     view.setBackgroundColor(Color.GRAY);
                                 }
@@ -1113,7 +1244,7 @@ public class AttendanceFragment extends Fragment {
                             if (binding!= null && binding.checkOutBtn != null) {
                                 binding.checkOutBtn.setBackgroundColor(Color.WHITE);
                             } else {
-                                View view = getActivity().findViewById(R.id.checkOutBtn);
+                                View view = mActivity.findViewById(R.id.checkOutBtn);
                                 if (view != null) {
                                     view.setBackgroundColor(Color.WHITE);
                                 }

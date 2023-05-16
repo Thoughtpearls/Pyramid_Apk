@@ -12,7 +12,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/background"
-            android:paddingBottom="30dp"
+            android:paddingBottom="70dp"
             >
             <LinearLayout
                 android:id="@+id/layoutOne"
@@ -102,6 +102,7 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="8dp"
                 app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="18dp"
                 >
 
                 <CalendarView
@@ -115,6 +116,68 @@
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.cardview.widget.CardView>
+
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/unSyncRidesLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/calendarLayout"
+                android:layout_centerInParent="true"
+                android:layout_margin="15dp"
+                android:layout_marginStart="18dp"
+                android:layout_marginTop="18dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="@color/white"
+                >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Un Sync Rides"
+                        android:textAlignment="center"
+                        android:fontFamily="@font/epilogue_bold"
+                        android:padding="5dp"
+                        android:textSize="16sp"
+                        android:background="@color/gray" />
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:gravity="center_vertical"
+                        >
+
+                        <TextView
+                            android:id="@+id/unSyncRideMessage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:fontFamily="@font/epilogue_bold"
+                            android:text=""
+                            android:textAlignment="center"
+                            android:textSize="16sp" />
+
+                          <com.google.android.material.button.MaterialButton
+                            android:id="@+id/unSyncRideBtn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentBottom="true"
+                            android:layout_centerInParent="true"
+                            android:paddingBottom="3dp"
+
+                            android:text="Sync Rides">
+
+                        </com.google.android.material.button.MaterialButton>
+
+                    </RelativeLayout>
+                </LinearLayout>
 
             </androidx.cardview.widget.CardView>
 

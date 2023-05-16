@@ -199,7 +199,7 @@ public class BottomNavigationActivity extends AppCompatActivity {
             NavGraph navGraph = navController.getNavInflater().inflate(R.navigation.mobile_navigation_only_attendance);
             navController.setGraph(navGraph);
         } else {
-            NavGraph navGraph = navController.getNavInflater().inflate(R.navigation.mobile_navigation2);
+            NavGraph navGraph = navController.getNavInflater().inflate(R.navigation.mobile_navigation);
             navController.setGraph(navGraph);
         }
     }

@@ -21,6 +21,7 @@ import android.view.View;
 
 import androidx.core.content.ContextCompat;
 
+import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.api.response.LocationRequest;
 
 import java.io.BufferedReader;
@@ -118,14 +119,19 @@ public class TrackerUtility {
     }
 
     public static String getDeviceId(Context context) {
-        String android_id = Settings.Secure.getString(context.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-        Log.d("TRIP","Before Android ID : " + android_id);
-        //android_id = "16fb058fe8efb57d";
-        //android_id = "89ABCDEF-01234567-89ABCDEF";
-        //android_id = "555113d4af5795a2";
-        Log.d("TRIP","After Android ID : " + android_id);
-        return android_id;
+        if (LocationApp.DEVICE_ID == null) {
+            String android_id = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
+            Log.d("TRIP", "Before Android ID : " + android_id);
+            //android_id = "16fb058fe8efb57d";
+            //android_id = "89ABCDEF-01234567-89ABCDEF";
+            //android_id = "555113d4af5795a2";
+            Log.d("TRIP", "After Android ID : " + android_id);
+            LocationApp.DEVICE_ID = android_id;
+            return android_id;
+        } else {
+            return LocationApp.DEVICE_ID;
+        }
     }
 
     public static Bitmap getBitmapFromURL(String strURL) {
@@ -283,19 +289,71 @@ public class TrackerUtility {
         return "0";
     }
 
-    public static Float calculateDistanceInMeter(List<LocationRequest> locationRequestList) {
-        Float distance = 0f;
+    public static Double roundOffDouble(Double totalDistance) {
+        return Double.valueOf(roundOffDoubleToString(totalDistance));
+    }
+
+    public static Double calculateDistanceInMeter(List<LocationRequest> locationRequestList) {
+        Double distance = 0d;
         if (locationRequestList == null || locationRequestList.size() == 0) {
             return distance;
         }
         for(int i = 0; i < locationRequestList.size() - 2; i++) {
             LocationRequest pos1 = locationRequestList.get(i);
             LocationRequest pos2 = locationRequestList.get(i + 1);
+            //distance += calculateDistance(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), "M");
             float[] result = new float[1];
             Location.distanceBetween(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), result);
             distance += result[0];
         }
         return distance;
+    }
+
+    public static Double calculateDistanceInKilometer(List<com.thoughtpearl.conveyance.respository.entity.Location> locationList) {
+        Double distance = 0d;
+        if (locationList == null || locationList.size() == 0) {
+            return distance;
+        }
+        for(int i = 0; i < locationList.size() - 2; i++) {
+            com.thoughtpearl.conveyance.respository.entity.Location pos1 = locationList.get(i);
+            com.thoughtpearl.conveyance.respository.entity.Location pos2 = locationList.get(i + 1);
+            //distance += calculateDistance(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), "M");
+            float[] result = new float[1];
+            Location.distanceBetween(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), result);
+            distance += result[0];
+        }
+        return distance / 1000d;
+    }
+
+    public static double calculateDistance(double lat1, double lon1, double lat2, double lon2, String unit)
+    {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        if (unit == "K") {
+            dist = dist * 1.609344;
+        } else if (unit == "N") {
+            dist = dist * 0.8684;
+        }
+        return (dist);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts decimal degrees to radians             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double deg2rad(double deg)
+    {
+        return (deg * Math.PI / 180.0);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts radians to decimal degrees             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double rad2deg(double rad)
+    {
+        return (rad * 180.0 / Math.PI);
     }
 
      //System.out.println(getWeekends(2));// All weekends of Feb in the current year
@@ -399,10 +457,10 @@ public class TrackerUtility {
     }
 
     public static boolean isDeveloperModeEnabled(Context context) {
-        if (Integer.valueOf(android.os.Build.VERSION.SDK) >= 17) {
+         if (Integer.valueOf(Build.VERSION.SDK_INT) >= 17) {
             return android.provider.Settings.Secure.getInt(context.getContentResolver(),
                     android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0;
-        }
+         }
         return false;
     }
 }

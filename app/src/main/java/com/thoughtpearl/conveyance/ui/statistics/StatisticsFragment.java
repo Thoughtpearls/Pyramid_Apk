@@ -2,8 +2,10 @@ package com.thoughtpearl.conveyance.ui.statistics;
 
 import static android.content.Context.MODE_PRIVATE;
 
+import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -71,6 +73,14 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
     public static boolean isRideListRefreshRequired = false;
     private boolean showDatePopup = false;
 
+    Activity mActivity;
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mActivity = (Activity) context;
+    }
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         StatisticsViewModel statisticsViewModel =
@@ -81,7 +91,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         binding.swipeRefreshLayout.setOnScrollChangeListener(new View.OnScrollChangeListener() {
             @Override
             public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-                if(scrollY > 5){
+                if(scrollY > 5) {
                     binding.swipeRefreshLayout.setEnabled(false);
                 }else{
                     binding.swipeRefreshLayout.setEnabled(true);
@@ -129,7 +139,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         categories.add(CUSTOM_DATE);
 
         // Creating adapter for spinner
-        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(getActivity(), R.layout.spinner_item, categories);
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(mActivity, R.layout.spinner_item, categories);
 
         // Drop down layout style - list view with radio button
         dataAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
@@ -147,7 +157,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         rides = new ArrayList<>();
 
         // Creating adapter for spinner
-        rideAdapter = new ArrayAdapter<String>(getActivity(),  R.layout.spinner_item, rides);
+        rideAdapter = new ArrayAdapter<String>(mActivity,  R.layout.spinner_item, rides);
 
         // Drop down layout style - list view with radio button
         rideAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
@@ -160,11 +170,11 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
                 if (i > 0) {
                     Ride ride = searchRideResponse.getRideDTOList().get( i - 1);
 
-                    Intent intent = new Intent(getActivity(), RideDetailsActivity.class);
+                    Intent intent = new Intent(mActivity, RideDetailsActivity.class);
                     intent.putExtra("rideId", ride.getId());
                     intent.putExtra("isInCompleteRide", (ride.getRideEndTime() == null));
                     intent.putExtra("isFromStatisticScreen", true);
-                    getActivity().startActivity(intent);
+                    mActivity.startActivity(intent);
                     /*String sEndDate = ride.getRideDate() + " " + ride.getRideEndTime();
                     String sStartDate = ride.getRideDate() + " " + ride.getRideStartTime();
                     Date endDate = TrackerUtility.convertStringToDate(sEndDate);
@@ -202,17 +212,17 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
     }
 
     private void searchRidesByDateRange(SearchRideFilter searchRideFilter, boolean showLoader) {
-        if (!TrackerUtility.checkConnection(getActivity())) {
-            Toast.makeText(getActivity(), "Please check your network connection", Toast.LENGTH_LONG).show();
+        if (!TrackerUtility.checkConnection(mActivity)) {
+            Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
             binding.swipeRefreshLayout.setRefreshing(false);
         } else {
             Dialog dialog = null;
             if (showLoader) {
-                dialog = LocationApp.showLoader(getActivity());
+                dialog = LocationApp.showLoader(mActivity);
             }
             binding.statisticCardView.setVisibility(View.VISIBLE);
             binding.errorAnimation.setVisibility(View.GONE);
-            Call<SearchRideResponse> searchRideStatistics = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(getActivity()), LocationApp.DEVICE_ID, searchRideFilter);
+            Call<SearchRideResponse> searchRideStatistics = ApiHandler.getClient().searchRideStatistics(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID, searchRideFilter);
             Dialog finalDialog = dialog;
             searchRideStatistics.enqueue(new Callback<SearchRideResponse>() {
                 @Override
@@ -226,11 +236,27 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
                             rides.add((index.getAndIncrement()) + ".  " + ride.getRideDate() + " " + ride.getRideStartTime());
                         });
 
-                        binding.distanceTextView.setText(TrackerUtility.roundOffDoubleToString((double) searchRideResponse.getDistanceTravelled()));
-                        binding.durationTextView.setText(searchRideResponse.getRideDuration());
-                        binding.reimbursementTextView.setText("Rs " + searchRideResponse.getReimbursementAmount());
-                        rideAdapter = new ArrayAdapter<String>(getActivity(), R.layout.spinner_item, rides);
-                        binding.listOfRides.setAdapter(rideAdapter);
+                        mActivity.runOnUiThread(() -> {
+                            if (binding != null) {
+                                binding.distanceTextView.setText(TrackerUtility.roundOffDoubleToString((double) searchRideResponse.getDistanceTravelled()));
+                                binding.durationTextView.setText(searchRideResponse.getRideDuration());
+                                binding.reimbursementTextView.setText("Rs " + searchRideResponse.getReimbursementAmount());
+                            } else {
+                                ((TextView)mActivity.findViewById(R.id.distanceTextView)).setText(TrackerUtility.roundOffDoubleToString((double) searchRideResponse.getDistanceTravelled()));
+                                ((TextView)mActivity.findViewById(R.id.durationTextView)).setText(searchRideResponse.getRideDuration());
+                                ((TextView)mActivity.findViewById(R.id.reimbursementTextView)).setText("Rs " + searchRideResponse.getReimbursementAmount());
+                            }
+                            rideAdapter = new ArrayAdapter<String>(mActivity, R.layout.spinner_item, rides);
+                            if (binding != null && binding.listOfRides != null) {
+                                binding.listOfRides.setAdapter(rideAdapter);
+                            } else {
+                                Spinner spinner = mActivity.findViewById(R.id.listOfRides);
+                                if (spinner != null) {
+                                    spinner.setAdapter(rideAdapter);
+                                }
+                            }
+                        });
+
                     } else if (response.code() == 423) {
                         if (MyService.isTrackingOn != null && MyService.isTrackingOn.getValue()) {
 
@@ -243,34 +269,37 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
                                 }
                             });
 
-                            Bitmap bitmap = TrackerUtility.loadBitmapFromView(getActivity(), getView());
-                            File screenshot = TrackerUtility.takeScreen(getActivity(), getView(), bitmap);
-                            Intent intent = new Intent(getActivity(), MyService.class);
+                            Bitmap bitmap = TrackerUtility.loadBitmapFromView(mActivity, getView());
+                            File screenshot = TrackerUtility.takeScreen(mActivity, getView(), bitmap);
+                            Intent intent = new Intent(mActivity, MyService.class);
                             intent.setAction(MyService.STOP_SERVICE);
                             intent.putExtra("screenshot_path", screenshot.getAbsolutePath());
-                            getActivity().startService(intent);
+                            mActivity.startService(intent);
                         } else {
                             logout();
                         }
                     } else {
-                        Toast.makeText(getActivity(), "No Record found", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mActivity, "No Record found", Toast.LENGTH_SHORT).show();
                     }
                     if (showLoader) {
                         finalDialog.dismiss();
                     }
-                    binding.swipeRefreshLayout.setRefreshing(false);
-
+                    mActivity.runOnUiThread(() -> {
+                        binding.swipeRefreshLayout.setRefreshing(false);
+                    });
                 }
 
                 @Override
                 public void onFailure(Call<SearchRideResponse> call, Throwable t) {
-                    Toast.makeText(getActivity(), "No Record found", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mActivity, "No Record found", Toast.LENGTH_SHORT).show();
                     if (showLoader) {
                         finalDialog.dismiss();
                     }
-                    binding.statisticCardView.setVisibility(View.GONE);
-                    binding.errorAnimation.setVisibility(View.VISIBLE);
-                    binding.swipeRefreshLayout.setRefreshing(false);
+                    mActivity.runOnUiThread(() -> {
+                        binding.statisticCardView.setVisibility(View.GONE);
+                        binding.errorAnimation.setVisibility(View.VISIBLE);
+                        binding.swipeRefreshLayout.setRefreshing(false);
+                    });
                 }
             });
         }
@@ -278,14 +307,14 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
 
     private void logout() {
         new Handler().post(() -> {
-            SharedPreferences sharedPreferences = getActivity().getSharedPreferences(LocationApp.APP_NAME, MODE_PRIVATE);
+            SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, MODE_PRIVATE);
             sharedPreferences.edit().clear().commit();
             AppExecutors.getInstance().getDiskIO().execute(()->{
-                DatabaseClient.getInstance(getActivity()).getTripDatabase().clearAllTables();
+                DatabaseClient.getInstance(mActivity).getTripDatabase().clearAllTables();
             });
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
+            Intent intent = new Intent(mActivity, LoginActivity.class);
             startActivity(intent);
-            getActivity().finish();
+            mActivity.finish();
         });
     }
 
@@ -377,7 +406,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         customStartDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
         customEndDate = TrackerUtility.getDateString(Calendar.getInstance().getTime());
 
-        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(getActivity());
+        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(mActivity);
         alertDialogBuilder.setCancelable(true);
         alertDialogBuilder.setView(R.layout.date_picker_layout);
         /*alertDialogBuilder.setPositiveButton("OK", (dialogInterface, i) -> {
@@ -414,7 +443,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
             mCalendar.set(Calendar.DAY_OF_MONTH, i2);
 
             if (!TrackerUtility.convertStringToDate(customStartDate).before(mCalendar.getTime())) {
-                Toast.makeText(getActivity(), "ToDate can not be less than FromDate", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mActivity, "ToDate can not be less than FromDate", Toast.LENGTH_SHORT).show();
                 return;
             }
             customEndDate = TrackerUtility.getDateString(mCalendar.getTime());
@@ -426,12 +455,12 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         ((TextView)alertDialog.findViewById(R.id.fromDateTextView)).setText(sToDate);
 
         alertDialog.findViewById(R.id.fromDateTextView).setOnClickListener(view -> {
-            //Toast.makeText(getActivity(), "From date clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(mActivity, "From date clicked", Toast.LENGTH_SHORT).show();
             showCalender(fromDateListener);
         });
 
         alertDialog.findViewById(R.id.toDateTextView).setOnClickListener(view -> {
-            //Toast.makeText(getActivity(), "To date clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(mActivity, "To date clicked", Toast.LENGTH_SHORT).show();
             showCalender(toDateListener);
         });
     }
@@ -441,6 +470,6 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         int year = mCalendar.get(Calendar.YEAR);
         int month = mCalendar.get(Calendar.MONTH);
         int dayOfMonth = mCalendar.get(Calendar.DAY_OF_MONTH);
-        new DatePickerDialog(getActivity(), dateListener, year, month, dayOfMonth).show();
+        new DatePickerDialog(mActivity, dateListener, year, month, dayOfMonth).show();
     }
 }

@@ -14,6 +14,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.MenuItem;
@@ -26,6 +28,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -37,17 +40,21 @@ import com.thoughtpearl.conveyance.api.ApiHandler;
 import com.thoughtpearl.conveyance.api.response.LocationRequest;
 import com.thoughtpearl.conveyance.api.response.RideDetailsResponse;
 import com.thoughtpearl.conveyance.respository.databaseclient.DatabaseClient;
+import com.thoughtpearl.conveyance.respository.entity.Location;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
+import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
 import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
 import com.thoughtpearl.conveyance.ui.statistics.StatisticsFragment;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
@@ -96,24 +103,28 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
         completeRideButton = findViewById(R.id.completeRide);
         completeRideButton.setVisibility(View.GONE);
         if (isInCompleteRide) {
-            completeRideButton.setOnClickListener(view -> {
-                if (mMap != null) {
-                    mMap.snapshot(bitmap -> {
-                        File screenshot = TrackerUtility.takeScreen(getApplicationContext(), mapView, bitmap);
-                        if (!TrackerUtility.checkConnection(getApplicationContext())) {
-                            Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
-                        } else {
-                            updateInCompleteRide(screenshot.getAbsolutePath());
-                        }
-                    });
-                }
-            });
+            setListenerToUpdateRideBtn();
         }
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
         mapView.setEnabled(true);
         initToolbar();
+    }
+
+    private void setListenerToUpdateRideBtn() {
+        completeRideButton.setOnClickListener(view -> {
+            if (mMap != null) {
+                mMap.snapshot(bitmap -> {
+                    File screenshot = TrackerUtility.takeScreen(getApplicationContext(), mapView, bitmap);
+                    if (!TrackerUtility.checkConnection(getApplicationContext())) {
+                        Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
+                    } else {
+                        updateInCompleteRide(screenshot.getAbsolutePath());
+                    }
+                });
+            }
+        });
     }
 
     private void fetchRideDetails() {
@@ -146,6 +157,20 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                        } else {*/
                        if (isInCompleteRide) {
                            completeRideButton.setVisibility(View.VISIBLE);
+                       } else {
+                           AppExecutors.getInstance().getDiskIO().execute(()->{
+                               int unSyncRideLocationCount = DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().getUnSyncServerLocations(rideId).size();
+                               AppExecutors.getInstance().getMainThread().execute(()->{
+                                    double distance = TrackerUtility.roundOffDouble(TrackerUtility.calculateDistanceInMeter(rideDetailsResponse.getRideLocationDTOList())/1000f);
+                                   if (/*(!isListEmptyOrNull(rideDetailsResponse.getRideLocationDTOList()) && distance > rideDetailsResponse.getDistanceTravelled()) ||*/ unSyncRideLocationCount > 0) {
+                                       completeRideButton.setText("Update Ride");
+                                       completeRideButton.setVisibility(View.VISIBLE);
+                                       setListenerToUpdateRideBtn();
+                                   } else {
+                                       completeRideButton.setVisibility(View.GONE);
+                                   }
+                               });
+                           });
                        }
                        //}
                        reDrawTravelPathOnMap(rideDetailsResponse.getRideLocationDTOList());
@@ -154,6 +179,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                    } else {
                        Toast.makeText(RideDetailsActivity.this, "Failed to fetch ride details please try after sometime.", Toast.LENGTH_SHORT).show();
                    }
+
                    if (dialog != null && dialog.isShowing()) {
                        dialog.dismiss();
                    }
@@ -230,11 +256,13 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
             }
 
             MarkerOptions startMarkerOptions = new MarkerOptions();
+            startMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
             startMarkerOptions.title("Start point");
             startMarkerOptions.position(start);
             mMap.addMarker(startMarkerOptions);
 
             MarkerOptions endMarkerOptions = new MarkerOptions();
+            endMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
             endMarkerOptions.title("End point");
             endMarkerOptions.position(dest);
             mMap.addMarker(endMarkerOptions);
@@ -311,89 +339,114 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
     public void updateInCompleteRide(String imagePath) {
         Dialog dialog = LocationApp.showLoader(this);
         AppExecutors.getInstance().getDiskIO().execute(()->{
-            TripRecord tripRecord = new TripRecord();
-            tripRecord.setTripId(UUID.fromString(rideId));
-            if (rideDetailsResponse != null) {
 
-                File file = new File(imagePath);
-                Log.d("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
-                float totalDistance = 0;
-                float distanceInKm = 0;
-                String sDate = rideDetailsResponse.getRideDate();
-                String endTime;
-                if (!isListEmptyOrNull(rideDetailsResponse.getRideLocationDTOList())) {
-                    totalDistance = TrackerUtility.calculateDistanceInMeter(rideDetailsResponse.getRideLocationDTOList());
-                    distanceInKm = totalDistance / 1000f;
-                    LocationRequest locationRequest = rideDetailsResponse.getRideLocationDTOList().get(rideDetailsResponse.getRideLocationDTOList().size() - 1);
-                    sDate = sDate + " " + locationRequest.getTimeStamp();
-                    endTime = locationRequest.getTimeStamp();
-                } else {
-                    sDate = sDate + " 00:00:00";
-                    endTime = rideDetailsResponse.getRideTime();
-                }
-                Date date = TrackerUtility.convertStringToDate(sDate , "yyyy-MM-dd HH:mm:ss");
-                tripRecord.setTotalDistance(distanceInKm);
-                tripRecord.setEndTimestamp(date.getTime());
-                tripRecord.setStatus(true);
+            List<Location> unSyncLocations = DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().getUnSyncServerLocations(rideId);
 
-                RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
-                RequestBody id = RequestBody.create(MediaType.parse("text/plain"), rideId);
-                //RequestBody ridePurpose = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getPurpose());
-                RequestBody rideStartTime = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getRideTime());
-                RequestBody rideEndTime = RequestBody.create(MediaType.parse("text/plain"), endTime);
-                RequestBody rideDate = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getRideDate());
-                RequestBody rideDistance = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(distanceInKm));
+            if (unSyncLocations.size() > 0) {
+                AtomicReference<List<Location>> unSyncList = new AtomicReference<>(new ArrayList<>());
 
-                Map<String, RequestBody> bodyMap = new HashMap<>();
-                bodyMap.put("file\"; filename=\"pp.png\" ", fileBody);
-                bodyMap.put("id", id);
-                bodyMap.put("rideDate", rideDate);
-                bodyMap.put("rideStartTime", rideStartTime);
-                bodyMap.put("rideEndTime", rideEndTime);
-                bodyMap.put("rideDistance", rideDistance);
-                //bodyMap.put("ridePurpose", ridePurpose);
-
-                Call<Void> updateRideCall = ApiHandler.getClient().updateRide(LocationApp.getUserName(this), LocationApp.DEVICE_ID, rideId, bodyMap);
-                updateRideCall.enqueue(new Callback<Void>(){
-
-                    @Override
-                    public void onResponse(Call<Void> call, Response<Void> response) {
-                        Log.d("TRIP", "Ride completed :");
-                        if (response.code() == 200 || response.code() == 201) {
-                            //tripRecord.setStatus(true);
-                            StatisticsFragment.isRideListRefreshRequired = isFromStatisticScreen;
-                            AppExecutors.getInstance().getDiskIO().execute(() -> {
-                                DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().updateRecord(tripRecord);
-                            });
-                            isInCompleteRide = false;
-                            completeRideButton.setVisibility(View.GONE);
-                            Toast.makeText(getApplicationContext(), "Ride Updated Successfully", Toast.LENGTH_LONG).show();
-                            fetchRideDetails();
-                        } else {
-                            Toast.makeText(RideDetailsActivity.this, "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
-                        }
-
-                        AppExecutors.getInstance().getMainThread().execute(()->{
-                            if (dialog.isShowing()) {
-                                dialog.dismiss();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onFailure(Call<Void> call, Throwable t) {
-                        Log.d("TRIP", "Ride not completed :" + t);
-                        Toast.makeText(RideDetailsActivity.this, "D" +
-                                "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
-                        AppExecutors.getInstance().getMainThread().execute(()->{
-                            if (dialog.isShowing()) {
-                                dialog.dismiss();
-                            }
-                        });
+                AppExecutors.getInstance().getDiskIO().execute(() -> {
+                    unSyncList.set(unSyncLocations);
+                    if (unSyncList.get().size() > 0) {
+                        updateLocationsOnServer(unSyncList.get(), imagePath, dialog);
+                        Log.d("TRIP", "UPDATING RECORDS..");
                     }
                 });
+            } else {
+                updateRide(imagePath, dialog, 0d,"");
             }
         });
+    }
+
+    private void updateRide(String imagePath, Dialog dialog, double updatedDistanceInKm, String  updateTime) {
+        TripRecord tripRecord = new TripRecord();
+        tripRecord.setTripId(UUID.fromString(rideId));
+        if (rideDetailsResponse != null) {
+
+            File file = new File(imagePath);
+            Log.d("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
+            double totalDistance = 0;
+            double distanceInKm = 0;
+            String sDate = rideDetailsResponse.getRideDate();
+            String endTime;
+            if (!isListEmptyOrNull(rideDetailsResponse.getRideLocationDTOList())) {
+                totalDistance = TrackerUtility.calculateDistanceInMeter(rideDetailsResponse.getRideLocationDTOList());
+                double tempInKm = (totalDistance / 1000f);
+                distanceInKm = tempInKm > updatedDistanceInKm ? tempInKm : updatedDistanceInKm;
+                distanceInKm = TrackerUtility.roundOffDouble(distanceInKm);
+                LocationRequest locationRequest = rideDetailsResponse.getRideLocationDTOList().get(rideDetailsResponse.getRideLocationDTOList().size() - 1);
+                sDate = sDate + " " + locationRequest.getTimeStamp();
+                endTime = locationRequest.getTimeStamp();
+            } else {
+                sDate = sDate + " 00:00:00";
+                endTime = rideDetailsResponse.getRideTime();
+            }
+            Date date = TrackerUtility.convertStringToDate(sDate , "yyyy-MM-dd HH:mm:ss");
+            if (updateTime != null && updateTime.trim().length() > 0) {
+                Date updateDate = TrackerUtility.convertStringToDate(rideDetailsResponse.getRideDate() + " " + updateTime);
+                date = date.getTime() > updateDate.getTime() ? date : updateDate;
+            }
+            tripRecord.setTotalDistance(distanceInKm);
+            tripRecord.setEndTimestamp(date.getTime());
+            tripRecord.setStatus(true);
+
+            RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), rideId);
+            //RequestBody ridePurpose = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getPurpose());
+            RequestBody rideStartTime = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getRideTime());
+            RequestBody rideEndTime = RequestBody.create(MediaType.parse("text/plain"), endTime);
+            RequestBody rideDate = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getRideDate());
+            RequestBody rideDistance = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(distanceInKm));
+
+            Map<String, RequestBody> bodyMap = new HashMap<>();
+            bodyMap.put("file\"; filename=\"pp.png\" ", fileBody);
+            bodyMap.put("id", id);
+            bodyMap.put("rideDate", rideDate);
+            bodyMap.put("rideStartTime", rideStartTime);
+            bodyMap.put("rideEndTime", rideEndTime);
+            bodyMap.put("rideDistance", rideDistance);
+            //bodyMap.put("ridePurpose", ridePurpose);
+
+            Call<Void> updateRideCall = ApiHandler.getClient().updateRide(LocationApp.getUserName(this), LocationApp.DEVICE_ID, rideId, bodyMap);
+            updateRideCall.enqueue(new Callback<Void>(){
+
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    Log.d("TRIP", "Ride completed :");
+                    if (response.code() == 200 || response.code() == 201) {
+                        //tripRecord.setStatus(true);
+                        StatisticsFragment.isRideListRefreshRequired = isFromStatisticScreen;
+                        AppExecutors.getInstance().getDiskIO().execute(() -> {
+                            DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().updateRecord(tripRecord);
+                        });
+                        isInCompleteRide = false;
+                        completeRideButton.setVisibility(View.GONE);
+                        Toast.makeText(getApplicationContext(), "Ride Updated Successfully", Toast.LENGTH_LONG).show();
+                        fetchRideDetails();
+                    } else {
+                        Toast.makeText(RideDetailsActivity.this, "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
+                    }
+
+                    AppExecutors.getInstance().getMainThread().execute(()->{
+                        if (dialog.isShowing()) {
+                            dialog.dismiss();
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Log.d("TRIP", "Ride not completed :" + t);
+                    Toast.makeText(RideDetailsActivity.this, "D" +
+                            "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
+                    AppExecutors.getInstance().getMainThread().execute(()->{
+                        if (dialog.isShowing()) {
+                            dialog.dismiss();
+                        }
+                    });
+                }
+            });
+        }
     }
 
     public boolean isListEmptyOrNull(List locations) {
@@ -495,5 +548,69 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                         getString(mainTextStringId),
                         Snackbar.LENGTH_INDEFINITE)
                 .setAction(getString(actionStringId), listener).show();
+    }
+
+    public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, String imagePath, Dialog dialog) {
+        updateLocationsOnServer(unSyncedLocations, 0, imagePath, dialog);
+    }
+    public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, int retryAttemptCount, String imagePath, Dialog dialog) {
+        if (!TrackerUtility.checkConnection(RideDetailsActivity.this)) {
+            showToastMessage("Please check your network connection");
+        } else {
+            ArrayList<com.thoughtpearl.conveyance.api.response.LocationRequest> locationRequests = new ArrayList<>();
+            unSyncedLocations.forEach(location -> {
+                com.thoughtpearl.conveyance.api.response.LocationRequest request = new com.thoughtpearl.conveyance.api.response.LocationRequest("", location.getLatitude(), location.getLongitude(), location.getTripId().toString(), location.getTimestamp());
+                locationRequests.add(request);
+            });
+
+            Call<List<String>> createLocationCall = ApiHandler.getClient().createLocation(LocationApp.getUserName(RideDetailsActivity.this), LocationApp.DEVICE_ID, locationRequests);
+            createLocationCall.enqueue(new Callback<List<String>>() {
+                @Override
+                public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                    if (response.code() == 201) {
+                        AppExecutors.getInstance().getDiskIO().execute(() -> {
+                            unSyncedLocations.forEach(location -> {
+                                location.serverSync = true;
+                                DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().update(location);
+                            });
+
+                            double totalDistance = 0d;
+                            String updatedTime = "";
+                            if (unSyncedLocations.size() > 0) {
+                                TripRecordLocationRelation recordLocationRelation = DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(rideId));
+                                if (recordLocationRelation.getLocations() != null && recordLocationRelation.getLocations().size() > 0 ) {
+                                    totalDistance = TrackerUtility.calculateDistanceInKilometer(recordLocationRelation.getLocations());
+                                }
+                                updatedTime = recordLocationRelation.getLocations().get(recordLocationRelation.getLocations().size() - 1).getTimestamp();
+                            }
+
+                            updateRide(imagePath, dialog, totalDistance, updatedTime);
+                        });
+                    } else {
+                        if (retryAttemptCount < 1) {
+                            updateLocationsOnServer(unSyncedLocations, 1, imagePath, dialog);
+                        }
+                        showToastMessage("Ride data sync failed :" + response.errorBody());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<String>> call, Throwable t) {
+                    if (retryAttemptCount < 1) {
+                        updateLocationsOnServer(unSyncedLocations, 1, imagePath, dialog);
+                    }
+                    showToastMessage("Ride data sync failed.");
+                }
+            });
+        }
+    }
+
+    public void showToastMessage(String message) {
+        if (!LocationApp.isAppInBackground()) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast toast = Toast.makeText(RideDetailsActivity.this, message, Toast.LENGTH_LONG);
+                toast.show();
+            });
+        }
     }
 }

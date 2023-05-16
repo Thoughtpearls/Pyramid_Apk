@@ -23,6 +23,7 @@ import retrofit.http.POST;
 import retrofit.http.Part;
 import retrofit.mime.TypedFile;*/
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.FieldMap;
@@ -52,9 +53,9 @@ public interface ApiInterface {
 
     @Multipart
     @POST("/api/attendances/markAttendance")     // API's endpoints
-    public Call<String> markAttendance(@Header("userName") String username,
-                                       @Header("deviceId") String deviceId,
-                                       @PartMap Map<String, RequestBody> map);
+    public Call<ResponseBody> markAttendance(@Header("userName") String username,
+                                             @Header("deviceId") String deviceId,
+                                             @PartMap Map<String, RequestBody> map);
 
     @GET("/api/attendances/calculatedleaves")
     public Call<LeavesDetails> getLeaveDetails(@Header("userName") String username,

@@ -7,6 +7,7 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 
+import com.thoughtpearl.conveyance.respository.dto.UnSyncRideDto;
 import com.thoughtpearl.conveyance.respository.entity.Location;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
@@ -56,7 +57,10 @@ public interface  TripRecordDao {
     Long save(Location location);
 
     @Update
-    int update(Location location);
+    void update(Location location);
+
+    @Query("UPDATE location SET serversync=:syncServer WHERE locationid LIKE :locationId")
+    void updateLocationById(int syncServer, UUID locationId);
 
     @Insert
     Long save(TripRecord tripRecord);
@@ -87,7 +91,17 @@ public interface  TripRecordDao {
     @Query("SELECT * FROM location WHERE serverSync=0")
     List<Location> getUnSyncServerLocations();
 
+    @Query("SELECT count(DISTINCT(tripid)) from location where serversync=0")
+    int getUnSyncRidesCount();
+
+    @Query("SELECT DISTINCT(tripid) from location where serversync=0")
+    List<UnSyncRideDto> getUnSyncRidesList();
+
+
     @Query("SELECT * FROM location WHERE tripId IN (:tripId)")
     List<Location> getLocations(String tripId);
+
+    @Query("Delete FROM TripRecord WHERE id IN (select DISTINCT(tripid) from location where tripid not IN (select DISTINCT(tripid) from location where serversync=0))")
+    void deleteAllSyncedRides();
 
 }

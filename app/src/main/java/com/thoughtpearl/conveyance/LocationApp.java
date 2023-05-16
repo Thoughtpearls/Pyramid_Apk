@@ -9,7 +9,15 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
+import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.OnLifecycleEvent;
+import androidx.lifecycle.ProcessLifecycleOwner;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
@@ -19,14 +27,14 @@ import com.thoughtpearl.conveyance.crashlytics.CrashlysticsCustomKey;
 import com.thoughtpearl.conveyance.ui.customcomponent.MyProgressDialog;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
-public class LocationApp extends Application {
+public class LocationApp extends Application implements LifecycleEventObserver {
 
     public static final String APP_NAME = "TrackerApp";
-    public static final float ZOOM_LEVEL = 17F;
-    public static final float POLYLINE_WIDTH = 8F;
+    public static final float ZOOM_LEVEL = 17.5F;
+    public static final float POLYLINE_WIDTH = 12F;
     public static final int POLYLINE_COLOR = Color.BLUE;
     public static final String NOTIFICATION_CHANNEL_ID = "tracking_channel";
-    public static final String NOTIFICATION_CHANNEL_NAME = "Tracking";
+    public static final String NOTIFICATION_CHANNEL_NAME = "Recording Ride";
     public static final int NOTIFICATION_ID = 1;
     public static final String CLOCK_IN = "CLOCKIN";
     public static final String CLOCK_OUT = "CLOCKOUT";
@@ -39,10 +47,13 @@ public class LocationApp extends Application {
     public static MyProgressDialog progressDialog;
     private static FirebaseCrashlytics mCrashlytics;
     private CrashlysticsCustomKey crashlysticsCustomKey;
+    private static boolean isAppInBackground = false;
     public static void logs(String record_activity) {
         if (mCrashlytics != null) {
             mCrashlytics.setUserId(LocationApp.USER_NAME);
             mCrashlytics.log(record_activity);
+            mCrashlytics.setCustomKey(LocationApp.USER_NAME, record_activity);
+            mCrashlytics.sendUnsentReports();
         }
     }
 
@@ -65,6 +76,7 @@ public class LocationApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        ProcessLifecycleOwner.get().getLifecycle().addObserver(this);
         DEVICE_ID = TrackerUtility.getDeviceId(getApplicationContext());
         FirebaseApp.initializeApp(getApplicationContext());
         mCrashlytics = FirebaseCrashlytics.getInstance();
@@ -119,4 +131,16 @@ public class LocationApp extends Application {
         return  USER_NAME;
     }
 
+    @Override
+    public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
+       if (event == Lifecycle.Event.ON_STOP) {
+           isAppInBackground = true;
+       } else if (event == Lifecycle.Event.ON_START) {
+           isAppInBackground = false;
+       }
+    }
+
+    public static boolean isAppInBackground() {
+        return isAppInBackground;
+    }
 }

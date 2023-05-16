@@ -21,7 +21,7 @@ public class TripRecord {
     public long endTimestamp;
 
     @ColumnInfo(name = "total_distance")
-    public float totalDistance;
+    public double totalDistance;
 
     @ColumnInfo(name = "status")
     public boolean status;
@@ -94,11 +94,11 @@ public class TripRecord {
         this.endTimestamp = endTimestamp;
     }
 
-    public float getTotalDistance() {
+    public double getTotalDistance() {
         return totalDistance;
     }
 
-    public void setTotalDistance(float totalDistance) {
+    public void setTotalDistance(double totalDistance) {
         this.totalDistance = totalDistance;
     }
 

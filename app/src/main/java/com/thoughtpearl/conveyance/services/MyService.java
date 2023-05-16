@@ -4,27 +4,35 @@ import static com.thoughtpearl.conveyance.LocationApp.NOTIFICATION_CHANNEL_ID;
 import static com.thoughtpearl.conveyance.LocationApp.NOTIFICATION_CHANNEL_NAME;
 import static com.thoughtpearl.conveyance.LocationApp.NOTIFICATION_ID;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.LifecycleService;
 import androidx.lifecycle.MutableLiveData;
 
@@ -33,6 +41,7 @@ import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
+import com.thoughtpearl.conveyance.respository.syncjob.RecordRideSyncJob;
 import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
@@ -57,6 +66,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import okhttp3.MediaType;
@@ -65,14 +75,14 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MyService extends LifecycleService {
+public class MyService extends LifecycleService implements LocationListener {
 
-    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
-    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+    private static final long UPDATE_INTERVAL_IN_MILLISECONDS = 60000; // 10 seconds, in milliseconds
+    private static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = 10000; // 1 second, in milliseconds
     public static final String START_SERVICE = "Start";
     public static final String STOP_SERVICE = "Stop";
-
+    private final MyServiceBinder binder = new MyServiceBinder();
+    private static boolean useGPSLocationForApp = true; // Use locationManager for getting GPS services
     private Context context;
     public static MutableLiveData<Boolean> isTrackingOn = new MutableLiveData<>();
     private FusedLocationProviderClient client;
@@ -86,8 +96,8 @@ public class MyService extends LifecycleService {
     public static MutableLiveData<Location> mCurrentLocation = new MutableLiveData<>();
     private ArrayList<com.thoughtpearl.conveyance.respository.entity.Location> locationList = new ArrayList<>();
     public static MutableLiveData<TripRecord> runningTripRecord = new MutableLiveData<>();
-    public static MutableLiveData<ArrayList<com.thoughtpearl.conveyance.respository.entity.Location>>  locationListData = new MutableLiveData<>();
-    public static MutableLiveData<Float> totalDistance = new MutableLiveData<>();
+    public static MutableLiveData<ArrayList<com.thoughtpearl.conveyance.respository.entity.Location>> locationListData = new MutableLiveData<>();
+    public static MutableLiveData<Double> totalDistance = new MutableLiveData<>();
     public static MutableLiveData<String> timerCount = new MutableLiveData<>();
     public LocationManager locationManager;
     public static final int notify = 60000;  //interval between two services(Here Service run every 5 seconds)
@@ -95,8 +105,13 @@ public class MyService extends LifecycleService {
     private Handler mHandler = new Handler();   //run on another Thread to avoid crash
     private Timer mTimer = null;    //timer handling
     private Handler timerHandler;
-    private int seconds = 0;
+    //private int seconds = 0;
     private Runnable timerRunnable;
+    private CustomLocationFilter customLocationFilter;
+    float currentSpeed = 0.0f; // meters/second
+    long runStartTimeInMillis;
+    double manualDistance = 0d;
+
     public MyService() {
     }
 
@@ -110,9 +125,50 @@ public class MyService extends LifecycleService {
         setupInitialValues();
         setupLocationListener();
         setupTimerTask();
+    }
+
+    private void setupLocationManagerListener() {
+
         locationManager = (LocationManager) getSystemService(context.LOCATION_SERVICE);
+
         Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE); //setAccuracyは内部では、https://stackoverflow.com/a/17874592/1709287の用にHorizontalAccuracyの設定に変換されている。
+        criteria.setPowerRequirement(Criteria.POWER_HIGH);
+        criteria.setAltitudeRequired(false);
+        criteria.setSpeedRequired(true);
+        criteria.setCostAllowed(true);
+        criteria.setBearingRequired(false);
+
+        //API level 9 and up
+        criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+        criteria.setVerticalAccuracy(Criteria.ACCURACY_HIGH);
+        //criteria.setBearingAccuracy(Criteria.ACCURACY_HIGH);
+        //criteria.setSpeedAccuracy(Criteria.ACCURACY_HIGH);
+
+        Integer gpsFreqInMillis = 5000;
+        Integer gpsFreqInDistance = 5;  // in meters
+
         locationManager.getBestProvider(criteria, true);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        locationManager.requestLocationUpdates(gpsFreqInMillis, gpsFreqInDistance, criteria, this, null);
+    }
+
+    public void showToastMessage(String message) {
+        if (!LocationApp.isAppInBackground()) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast toast = Toast.makeText(MyService.this, message, Toast.LENGTH_LONG);
+                toast.show();
+            });
+        }
     }
 
     private void startTimer() {
@@ -124,24 +180,31 @@ public class MyService extends LifecycleService {
             @Override
             public void run() {
                 if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
-                    int hours = seconds / 3600;
-                    int minutes = (seconds % 3600) / 60;
-                    int secs = seconds % 60;
+
+                    //seconds = (System.currentTimeMillis() - runningTripRecord.getValue().getStartTimestamp())/1000l;
+                    long currentTimestamp = System.currentTimeMillis();
+                    long tempSecs = TimeUnit.MILLISECONDS.toSeconds(currentTimestamp - runningTripRecord.getValue().getStartTimestamp());
+                    //long minutes = TimeUnit.MILLISECONDS.toMinutes(currentTimestamp - runningTripRecord.getValue().getStartTimestamp());
+                    //long hours = TimeUnit.MILLISECONDS.toHours(currentTimestamp - runningTripRecord.getValue().getStartTimestamp());
+                    int hours = (int)(tempSecs / 3600);
+                    int minutes = (int)(tempSecs % 3600) / 60;
+                    int secs = (int)(tempSecs % 60);
 
                     // Format the seconds into hours, minutes,
                     // and seconds.
                     String time
                             = String
                             .format(Locale.getDefault(),
-                                    "%d:%02d:%02d", hours,
+                                    "%02d:%02d:%02d", hours,
                                     minutes, secs);
 
                     Log.d("TRIP", "timer  value :" + time);
                     timerCount.setValue(time);
+                    updateNotificationManager(time);
                     // Set the text view text.
-                    seconds++;
+                    //seconds++;
                 } else {
-                    seconds = 0;
+                    //seconds = 0;
                 }
                 // Post the code again
                 // with a delay of 1 second.
@@ -157,7 +220,7 @@ public class MyService extends LifecycleService {
             mTimer.cancel();
         else
             mTimer = new Timer();   //recreate new
-        mTimer.scheduleAtFixedRate(new TimeDisplay(), 0, notify);   //Schedule task
+        mTimer.scheduleAtFixedRate(new RecordRideSyncJob(MyService.this, true), 0, notify);   //Schedule task
     }
 
     private void setupLocationListener() {
@@ -166,22 +229,18 @@ public class MyService extends LifecycleService {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
-                    updateNotificationManager();
+                    updateNotificationManager(timerCount.getValue());
                     if (locationResult.getLocations() != null) {
                         locationResult.getLocations().forEach(location -> {
                             if (location != null && (location.isFromMockProvider() || TrackerUtility.isDeveloperModeEnabled(context))) {
-                                Toast.makeText(context, "Please turn off developer option from settings. Without that ride will not be recorded.", Toast.LENGTH_LONG).show();
+                                showToastMessage("Please turn off developer option from settings. Without that ride will not be recorded.");
                                 return;
                             }
 
-                            if (!isUsableLocation(location)) {
-                                Log.d("TRIP", "speed : " + location.getSpeed() + "accuracy :" + location.getAccuracy() );
-                               return;
-                            }
-                            if (location.hasAccuracy()) { //&& (mLastLocation == null || location.getAccuracy() >= mLastLocation.getAccuracy())
+                            if (filterAndAddLocation(location)) {
                                 if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
                                     updateLocationAndDistance(location);
-                                    updateNotificationManager();
+                                    updateNotificationManager(timerCount.getValue());
                                 }
                                 mCurrentLocation.postValue(location);
                             }
@@ -212,13 +271,18 @@ public class MyService extends LifecycleService {
 
     private boolean updateLocationAndDistance(Location location) {
         mLastLocation = mCurrentLocation.getValue();
-        if (mLastLocation != null) {
-            float distance = location.distanceTo(mLastLocation);
+        if (mLastLocation != null && mLastLocation.hasSpeed()) {
+            double distance = location.distanceTo(mLastLocation);//TrackerUtility.calculateDistance(location.getLatitude(), location.getLongitude(), mLastLocation.getLatitude(), mLastLocation.getLongitude(), "M");//
+            Log.d("TRIP", "pos 1 lat :" + location.getLatitude() +" long" + location.getLongitude());
+            Log.d("TRIP", "pos 2 lat :" + mLastLocation.getLatitude() +" long" + mLastLocation.getLongitude());
             Log.d("TRIP", "Distance difference : " + distance);
-            if (distance < 10) {
+
+            manualDistance += TrackerUtility.calculateDistance(location.getLatitude(), location.getLongitude(), mLastLocation.getLatitude(), mLastLocation.getLongitude(), "M");
+            Log.d("TRIP", "Distance difference manualDistance : " + manualDistance);
+            if (distance < 3) { //5 meter per second
                 return true;
             }
-            totalDistance.postValue(new Float(totalDistance.getValue().floatValue() + (distance/1000)));
+            totalDistance.postValue(totalDistance.getValue() + (distance/1000f));
         }
         mCurrentLocation.postValue(location);
         AtomicReference<TripRecord> tripRecord = new AtomicReference<>(runningTripRecord.getValue());
@@ -342,7 +406,7 @@ public class MyService extends LifecycleService {
         return false;
     }
 
-    private void updateNotificationManager() {
+    private void updateNotificationManager(String duration) {
         //Log.d("TRIP", "Lat:" + location.getLatitude() + " Long :" + location.getLongitude());
         //Toast.makeText(context, "Lat:" +location.getLatitude() + " Long :" +location.getLongitude(), Toast.LENGTH_SHORT).show();
         NumberFormat formatter = NumberFormat.getInstance(Locale.US);
@@ -351,11 +415,20 @@ public class MyService extends LifecycleService {
         formatter.setRoundingMode(RoundingMode.HALF_UP);
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-        builder.setContentText("Total Distance : " + formatter.format(totalDistance.getValue() != null ? totalDistance.getValue() : 0.0) +" km");
+        String message = "Distance : " + formatter.format(totalDistance.getValue() != null ? totalDistance.getValue() : 0.0) +" km";
+         if (duration != null ) {
+             message = message + " Duration : " + duration;
+         } else {
+             message = message + " Duration : 00:00:00";
+         }
+        builder.setContentText(message);
+        builder.setOngoing(true);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(notificationManager);
         }
-        notificationManager.notify(1, builder.build());
+        //notificationManager.notify(1, builder.build());
+        startForeground(NOTIFICATION_ID, builder.build());
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -370,6 +443,8 @@ public class MyService extends LifecycleService {
         if (intent != null) {
             switch (intent.getAction()) {
                 case START_SERVICE:
+                    runStartTimeInMillis = (long)(SystemClock.elapsedRealtimeNanos() / 1000000);
+                    manualDistance = 0d;
                     Bundle bundle = intent.getExtras();
                     ride = bundle.getParcelable("ride");
                     tripId = UUID.fromString(ride.getId());
@@ -393,11 +468,10 @@ public class MyService extends LifecycleService {
                         AppExecutors.getInstance().getMainThread().execute(() -> {
                             runningTripRecord.postValue(tripRecord);
                         });
-
                         //setupTimerTask();
                     });
                     start();
-                    seconds = 0;
+                    //seconds = 0;
                     startTimer();
                     isTrackingOn.postValue(true);
                     break;
@@ -405,7 +479,7 @@ public class MyService extends LifecycleService {
                     isTrackingOn.postValue(false);
                     String imagePath = intent.getExtras().get("screenshot_path").toString();
                     stop(imagePath);
-                    seconds = 0;
+                    //seconds = 0;
                     timerHandler.removeCallbacks(timerRunnable);
                     break;
                 default:
@@ -419,12 +493,18 @@ public class MyService extends LifecycleService {
     @Override
     public IBinder onBind(Intent intent) {
         super.onBind(intent);
-        return null;
+        return useGPSLocationForApp ? binder : null;
     }
 
-
     private void stop(String imagePath) {
-        client.removeLocationUpdates(locationCallback);
+        if (useGPSLocationForApp) {
+            //LocationManager
+            stopUpdatingLocation();
+        } else {
+            //FusedLocation
+            client.removeLocationUpdates(locationCallback);
+        }
+
         removeNotification();
         AppExecutors.getInstance().getDiskIO().execute(()->{
              TripRecord tripRecord = runningTripRecord.getValue();
@@ -471,7 +551,7 @@ public class MyService extends LifecycleService {
                              AppExecutors.getInstance().getDiskIO().execute(() -> {
                                  DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().updateRecord(tripRecord);
                              });
-                             Toast.makeText(getApplicationContext(), "Ride Recorded Successfully", Toast.LENGTH_LONG).show();
+                             showToastMessage("Ride Recorded Successfully");
                          }
                          AppExecutors.getInstance().getMainThread().execute(()->{
                              LocationApp.dismissLoader();
@@ -495,6 +575,7 @@ public class MyService extends LifecycleService {
         stopForeground(true);
         NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID);
+        NotificationManagerCompat.from(this).cancel(LocationApp.NOTIFICATION_ID);
     }
 
     @SuppressLint("MissingPermission")
@@ -508,29 +589,39 @@ public class MyService extends LifecycleService {
                 notificationIntent, PendingIntent.FLAG_IMMUTABLE);
         builder.setContentIntent(pendingIntent);
         startForeground(NOTIFICATION_ID, builder.build());
-        client.requestLocationUpdates(mLocationRequest,
-                locationCallback, Looper.myLooper());
+
+        if (useGPSLocationForApp) {
+            //LocationServiceManager
+            setupLocationManagerListener();
+        } else {
+            //FusedLocationClient
+            client.requestLocationUpdates(mLocationRequest,
+                    locationCallback, Looper.myLooper());
+        }
     }
 
     private void setupInitialValues() {
         mLastLocation = null;
+        manualDistance = 0d;
         mCurrentLocation.postValue(null);
-        totalDistance.postValue(0f);
-
+        totalDistance.postValue(0d);
+        currentSpeed = 0.0f; // meters/second
+        runStartTimeInMillis = 0;
+        customLocationFilter = new CustomLocationFilter(3);
         //locationListData = new MutableLiveData<>();
         locationListData.postValue(new ArrayList<>());
 
         builder = new NotificationCompat.Builder(this, "location");
-        builder.setContentTitle("Tracking");
-        builder.setContentText("Location: null");
+        builder.setContentTitle("Recording Ride");
+        builder.setContentText("Distance : 0.0Km  Duration : 00:00:00");
         builder.setSmallIcon(R.drawable.ic_baseline_directions_bike_24);
         builder.setOngoing(true);
 
-        mLocationRequest = new LocationRequest();
+        mLocationRequest = LocationRequest.create();
         mLocationRequest.setInterval(UPDATE_INTERVAL_IN_MILLISECONDS);
         mLocationRequest.setFastestInterval(FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setSmallestDisplacement(15f);
+        mLocationRequest.setSmallestDisplacement(10f);
     }
 
     @Override
@@ -539,8 +630,9 @@ public class MyService extends LifecycleService {
         mTimer.cancel();
     }
 
-    //class TimeDisplay for handling task
-    class TimeDisplay extends TimerTask {
+    /*
+    //class DatabaseServerSyncJob for handling task
+    class RecordRideSyncJob extends TimerTask {
         int finishTaskCount = 0;
         @Override
         public void run() {
@@ -561,35 +653,19 @@ public class MyService extends LifecycleService {
                             cancel();
                         }
                     }
-
-                    /*if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
-                        if (unSyncList.get().size() > 0) {
-                            updateLocationsOnServer(unSyncList.get());
-                            Log.d("TRIP", "UPDATING RECORDS..");
-                        }
-
-                    } else {
-                        if (unSyncList.get().size() == 0 && isTrackingOn.getValue() != null && !isTrackingOn.getValue().booleanValue()) {
-                            cancel();
-                            Log.d("TRIP", "ALL RECORDS SUCCESSFULLY SYNCED");
-                        }
-                    }*/
                 });
-
-                //Toast.makeText(MyService.this, "Service is running", Toast.LENGTH_SHORT).show();
             });
 
         }
 
-    }
+    } */
 
     public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations) {
         updateLocationsOnServer(unSyncedLocations, 0);
     }
     public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, int retryAttemptCount) {
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
-            Looper.prepare();
-            Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
+            showToastMessage("Please check your network connection");
         } else {
             ArrayList<com.thoughtpearl.conveyance.api.response.LocationRequest> locationRequests = new ArrayList<>();
             unSyncedLocations.forEach(location -> {
@@ -623,8 +699,7 @@ public class MyService extends LifecycleService {
                         if (retryAttemptCount < 1) {
                             updateLocationsOnServer(unSyncedLocations, 1);
                         }
-                        Looper.prepare();
-                        Toast.makeText(getApplicationContext(), "Location data sync failed :" + response.errorBody(), Toast.LENGTH_SHORT).show();
+                        showToastMessage("Location data sync failed :" + response.errorBody());
                     }
                 }
 
@@ -633,9 +708,212 @@ public class MyService extends LifecycleService {
                     if (retryAttemptCount < 1) {
                         updateLocationsOnServer(unSyncedLocations, 1);
                     }
-                    Toast.makeText(getApplicationContext(), "Location data sync failed", Toast.LENGTH_SHORT).show();
+                    showToastMessage("Location data sync failed");
                 }
             });
         }
     }
+
+    @SuppressLint("NewApi")
+    private long getLocationAge(Location newLocation){
+        long locationAge;
+        if(android.os.Build.VERSION.SDK_INT >= 17) {
+            long currentTimeInMilli = (long)(SystemClock.elapsedRealtimeNanos() / 1000000);
+            long locationTimeInMilli = (long)(newLocation.getElapsedRealtimeNanos() / 1000000);
+            locationAge = currentTimeInMilli - locationTimeInMilli;
+        }else{
+            locationAge = System.currentTimeMillis() - newLocation.getTime();
+        }
+        return locationAge;
+    }
+
+    private boolean filterAndAddLocation(Location location) {
+
+        long age = getLocationAge(location);
+
+        /*if(age > 15 * 1000){ //more than 5 seconds
+            Log.d("TRIP", "Location is old");
+            return false;
+        }*/
+
+        if (location.getAccuracy() <= 0) {
+            Log.d("TRIP", "Latitidue and longitude values are invalid.");
+            return false;
+        }
+
+        //setAccuracy(newLocation.getAccuracy());
+        float horizontalAccuracy = location.getAccuracy();
+        if(horizontalAccuracy > 20) { //10meter filter
+            Log.d("TRIP", "Accuracy is too low.");
+            return false;
+        }
+
+        /* Kalman Filter */
+        float Qvalue;
+
+        long locationTimeInMillis = (long)(location.getElapsedRealtimeNanos() / 1000000);
+        long elapsedTimeInMillis = locationTimeInMillis - runStartTimeInMillis;
+
+        if(currentSpeed == 0.0f) {
+            Qvalue = 3.0f; //3 meters per second
+        } else {
+            Qvalue = currentSpeed; // meters per second
+        }
+
+        customLocationFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), elapsedTimeInMillis, Qvalue);
+        double predictedLat = customLocationFilter.get_lat();
+        double predictedLng = customLocationFilter.get_lng();
+
+        Location predictedLocation = new Location("");//provider name is unecessary
+        predictedLocation.setLatitude(predictedLat);//your coords of course
+        predictedLocation.setLongitude(predictedLng);
+        float predictedDeltaInMeters =  predictedLocation.distanceTo(location);
+
+        if (predictedDeltaInMeters > 60) {
+            Log.d("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
+            customLocationFilter.consecutiveRejectCount += 1;
+
+            if(customLocationFilter.consecutiveRejectCount > 3) {
+                customLocationFilter = new CustomLocationFilter(3); //reset Kalman Filter if it rejects more than 3 times in raw.
+            }
+            return false;
+        } else {
+            customLocationFilter.consecutiveRejectCount = 0;
+        }
+
+       /* *//* Notifiy predicted location to UI *//*
+        Intent intent = new Intent("PredictLocation");
+        intent.putExtra("location", predictedLocation);
+        LocalBroadcastManager.getInstance(this.getApplication()).sendBroadcast(intent);*/
+
+        Log.d("TRIP", "Location quality is good enough.");
+        currentSpeed = location.getSpeed();
+        //locationList.add(location);
+        return true;
+    }
+
+    private boolean filterAndAddLocationLocationManager(Location location) {
+
+        long age = getLocationAge(location);
+
+        if (age > 15 * 1000) { //more than 5 seconds
+            Log.d("TRIP", "Location is old");
+            return false;
+        }
+
+        if (location.getAccuracy() <= 0) {
+            Log.d("TRIP", "Latitidue and longitude values are invalid.");
+            return false;
+        }
+
+        //setAccuracy(newLocation.getAccuracy());
+        float horizontalAccuracy = location.getAccuracy();
+        if(horizontalAccuracy > 30) { //10meter filter
+            Log.d("TRIP", "Accuracy is too low.");
+            return false;
+        }
+
+        /* Kalman Filter */
+        float Qvalue;
+
+        long locationTimeInMillis = (long)(location.getElapsedRealtimeNanos() / 1000000);
+        long elapsedTimeInMillis = locationTimeInMillis - runStartTimeInMillis;
+
+        if(currentSpeed == 0.0f) {
+            Qvalue = 3.0f; //3 meters per second
+        } else {
+            Qvalue = currentSpeed; // meters per second
+        }
+
+        customLocationFilter.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), elapsedTimeInMillis, Qvalue);
+        double predictedLat = customLocationFilter.get_lat();
+        double predictedLng = customLocationFilter.get_lng();
+
+        Location predictedLocation = new Location("");//provider name is unecessary
+        predictedLocation.setLatitude(predictedLat);//your coords of course
+        predictedLocation.setLongitude(predictedLng);
+        float predictedDeltaInMeters =  predictedLocation.distanceTo(location);
+
+        if (predictedDeltaInMeters > 60) {
+            Log.d("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
+            customLocationFilter.consecutiveRejectCount += 1;
+
+            if(customLocationFilter.consecutiveRejectCount > 3) {
+                customLocationFilter = new CustomLocationFilter(3); //reset Kalman Filter if it rejects more than 3 times in raw.
+            }
+            return false;
+        } else {
+            customLocationFilter.consecutiveRejectCount = 0;
+        }
+
+        /* *//* Notifiy predicted location to UI *//*
+        Intent intent = new Intent("PredictLocation");
+        intent.putExtra("location", predictedLocation);
+        LocalBroadcastManager.getInstance(this.getApplication()).sendBroadcast(intent);*/
+
+        Log.d("TRIP", "Location quality is good enough.");
+        currentSpeed = location.getSpeed();
+        //locationList.add(location);
+        return true;
+    }
+
+    //This is where we detect the app is being killed, thus stop service.
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.d("TRIP", "onTaskRemoved ");
+        this.stopUpdatingLocation();
+        stopSelf();
+    }
+
+    public void stopUpdatingLocation() {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationManager.removeUpdates(this);
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        LocationListener.super.onStatusChanged(provider, status, extras);
+        if (provider.equals(LocationManager.GPS_PROVIDER)) {
+            if (status == LocationProvider.OUT_OF_SERVICE) {
+                //notifyLocationProviderStatusUpdated(false);
+                Log.d("TRIP", "GPS is out of service");
+            } else {
+                Log.d("TRIP", "GPS is on service");
+                //notifyLocationProviderStatusUpdated(true);
+            }
+        }
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+        if (useGPSLocationForApp) {
+            boolean isValidLocation = filterAndAddLocationLocationManager(location);
+            Log.d("TRIP", "onLocationChanged : lat " + location.getLatitude() + " long : " + location.getLongitude() + "isAccurate :" + isValidLocation);
+
+            if (isTrackingOn != null && isTrackingOn.getValue() != null && isTrackingOn.getValue()) {
+                updateNotificationManager(timerCount.getValue());
+                if (location != null) {
+                    if (location != null && (location.isFromMockProvider() || TrackerUtility.isDeveloperModeEnabled(context))) {
+                        showToastMessage("Please turn off developer option from settings. Without that ride will not be recorded.");
+                        return;
+                    }
+
+                    if (isValidLocation) {
+                        if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
+                            updateLocationAndDistance(location);
+                            updateNotificationManager(timerCount.getValue());
+                        }
+                        mCurrentLocation.postValue(location);
+                    }
+                }
+            }
+        }
+    }
+
+    public class MyServiceBinder extends Binder {
+        public MyService getService() {
+            return MyService.this;
+        }
+    }
+
 }

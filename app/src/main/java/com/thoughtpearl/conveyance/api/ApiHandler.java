@@ -3,12 +3,20 @@ package com.thoughtpearl.conveyance.api;
 /*import retrofit.RestAdapter;
 import retrofit.converter.GsonConverter;*/
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.io.IOException;
+import java.time.Duration;
+import java.time.temporal.Temporal;
+import java.time.temporal.TemporalUnit;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -19,13 +27,24 @@ public class ApiHandler {
 
      /*   OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
         httpClient.addNetworkInterceptor(new AddHeaderInterceptor())*/;
+        Gson gson = new GsonBuilder().serializeNulls().create();
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        long OneMinute = 1L;
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .build();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://43.204.194.87:8091/")
                 // as we are sending data in json format so
                 // we have to add Gson converter factory
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 // at last we are building our retrofit builder.
+                .client(okHttpClient)
                 .build();
         // below line is to create an instance for our retrofit api class.
         ApiInterface retrofitAPI = retrofit.create(ApiInterface.class);
