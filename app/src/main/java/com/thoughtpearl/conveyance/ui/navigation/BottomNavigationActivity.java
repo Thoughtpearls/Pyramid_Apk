@@ -389,7 +389,9 @@ public class BottomNavigationActivity extends AppCompatActivity {
             case TAKE_PICTURE:
                 if (resultCode == RESULT_OK) {
                     if (profileImageFile != null) {
-                        LocationApp.showLoader(this);
+                        if (!isFinishing()) {
+                            LocationApp.showLoader(this);
+                        }
                         AppExecutors.getInstance().getNetworkIO().execute(()->{
                             RequestBody filePart = RequestBody.create(MediaType.parse("image/jpeg"), profileImageFile);
                             Map<String, RequestBody> param = new HashMap<>();
@@ -579,13 +581,13 @@ public class BottomNavigationActivity extends AppCompatActivity {
         // Create the storage directory if it does not exist
         if (! storageDir.exists()) {
             if (! storageDir.mkdirs()) {
-                Log.d("TRIP", "storageDir : failed to create directory");
+                LocationApp.logs("TRIP", "storageDir : failed to create directory");
                 File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_PICTURES), "RideRecord");
 
                 if (!mediaStorageDir.exists()) {
                     if (! mediaStorageDir.mkdirs()) {
-                        Log.d("TRIP", "mediaStorageDir : failed to create directory");
+                        LocationApp.logs("TRIP", "mediaStorageDir : failed to create directory");
                     }
                 }
                 storageDir = mediaStorageDir;
@@ -750,7 +752,7 @@ public class BottomNavigationActivity extends AppCompatActivity {
     private void fetchTodaysRides() {
         AppExecutors.getInstance().getNetworkIO().execute(() -> {
 
-            Log.d("TRIP", "trip count is :");
+            LocationApp.logs("TRIP", "trip count is :");
 
             Date today = Calendar.getInstance().getTime();
             //today = TrackerUtility.convertStringToDate("2022-12-27");

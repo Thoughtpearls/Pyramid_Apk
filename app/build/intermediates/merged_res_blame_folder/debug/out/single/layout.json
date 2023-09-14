@@ -32,10 +32,6 @@
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_ride_details.xml"
     },
     {
-        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-5:/layout/nav_header_dashboard.xml",
-        "source": "com.thoughtpearl.conveyance.app-main-8:/layout/nav_header_dashboard.xml"
-    },
-    {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\app_bar_dashboard.xml",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\app_bar_dashboard.xml"
     },
@@ -94,6 +90,10 @@
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_slideshow.xml",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_slideshow.xml"
+    },
+    {
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-5:/layout/alert_layout.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-8:/layout/alert_layout.xml"
     },
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_first.xml",

@@ -144,6 +144,8 @@ id father_name
 id fromDateLabel
 id fromDateTextView
 id full_name
+id fusedlocation
+id gpslocation
 id helloTextView
 id incompleteIcon
 id layoutOne

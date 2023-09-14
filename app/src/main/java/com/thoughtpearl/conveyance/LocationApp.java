@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.DefaultLifecycleObserver;
@@ -20,8 +21,12 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ProcessLifecycleOwner;
 
+import com.android.volley.VolleyError;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.hypertrack.hyperlog.HLCallback;
+import com.hypertrack.hyperlog.HyperLog;
+import com.hypertrack.hyperlog.error.HLErrorResponse;
 import com.thoughtpearl.conveyance.api.LeavesDetails;
 import com.thoughtpearl.conveyance.api.response.EmployeeProfile;
 import com.thoughtpearl.conveyance.crashlytics.CrashlysticsCustomKey;
@@ -29,6 +34,10 @@ import com.thoughtpearl.conveyance.ui.customcomponent.MyProgressDialog;
 import com.thoughtpearl.conveyance.ui.navigation.BottomNavigationActivity;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
+import java.io.IOException;
+
+import fr.bipi.tressence.file.FileLoggerTree;
+import fr.bipi.tressence.sentry.SentryBreadcrumbTree;
 import timber.log.Timber;
 
 public class LocationApp extends Application implements LifecycleEventObserver {
@@ -58,6 +67,8 @@ public class LocationApp extends Application implements LifecycleEventObserver {
             mCrashlytics.log(record_activity);
             mCrashlytics.setCustomKey(LocationApp.USER_NAME, record_activity);
             mCrashlytics.sendUnsentReports();
+            HyperLog.d("TRIP", "UserId :" + LocationApp.DEVICE_ID +"Username: " + LocationApp.USER_NAME + " Log: " + record_activity);
+            //Timber.d("UserId :" + LocationApp.DEVICE_ID +"Username: " + LocationApp.USER_NAME + " Log: " + record_activity);
         }
     }
 
@@ -68,6 +79,8 @@ public class LocationApp extends Application implements LifecycleEventObserver {
             crashlytics.setCustomKey(key, message);
             crashlytics.log(key + " : " + message);
         }
+        HyperLog.d(key, message);
+        //Timber.d(key  +" : " + message);
     }
 
     public static void logs(Throwable throwable) {
@@ -75,6 +88,8 @@ public class LocationApp extends Application implements LifecycleEventObserver {
             mCrashlytics.setUserId(LocationApp.USER_NAME);
             mCrashlytics.recordException(throwable);
         }
+        //Timber.d(throwable);
+        HyperLog.e("TRIP", "exception : ", throwable);
     }
 
     @Override
@@ -83,6 +98,11 @@ public class LocationApp extends Application implements LifecycleEventObserver {
         ProcessLifecycleOwner.get().getLifecycle().addObserver(this);
         DEVICE_ID = TrackerUtility.getDeviceId(getApplicationContext());
         FirebaseApp.initializeApp(getApplicationContext());
+        //Timber.plant(new Timber.DebugTree());
+        HyperLog.initialize(this);
+        //HyperLog.setURL("http://172.31.80.1:8080/uploadFile");
+        HyperLog.setURL("http://43.204.194.87:8091/api/log/upload");
+        //Timber.plant(new SentryBreadcrumbTree(Log.DEBUG));
         mCrashlytics = FirebaseCrashlytics.getInstance();
         mCrashlytics.setCrashlyticsCollectionEnabled(true);
         this.crashlysticsCustomKey = new CrashlysticsCustomKey(this.getApplicationContext());
@@ -118,12 +138,16 @@ public class LocationApp extends Application implements LifecycleEventObserver {
         if (dialog == null) {
             return;
         }
-        Activity activity = dialog.getOwnerActivity();
-        if (activity != null && !activity.isFinishing()) {
-            if (dialog != null  && dialog.isShowing()) {
+        //Activity activity = dialog.getOwnerActivity();
+        //if (activity != null && !activity.isFinishing()) {
+        try {
+            if (dialog != null && dialog.isShowing()) {
                 dialog.dismiss();
             }
+        } catch (Exception exception) {
+            logs("TRIP", "enabled to close dialog :" + exception.getMessage());
         }
+        //}
     }
 
     public static EmployeeProfile getEmployeeProfile() {

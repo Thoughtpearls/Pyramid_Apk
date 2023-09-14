@@ -32,7 +32,7 @@ public class RideLocationSyncWorker /*extends Worker*/ {
         long startTime = System.currentTimeMillis();
         while (!recordRideSyncJob.isCompleted()) {
             if (TimeUnit.MILLISECONDS.toMinutes(SystemClock.currentThreadTimeMillis() - startTime) > 2) {
-                Log.d("TRIP", "Explicitly closing the sync job");
+                LocationApp.logs("TRIP", "Explicitly closing the sync job");
                 recordRideSyncJob.setCompleted(true);
                 timer.cancel();
                 break;

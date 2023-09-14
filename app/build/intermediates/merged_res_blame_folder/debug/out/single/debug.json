@@ -4,12 +4,12 @@
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\drawable\\ic_baseline_menu_book_24.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\layout_activity_ride_details.xml.flat",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_ride_details.xml"
-    },
-    {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\mipmap-hdpi_ic_launcher_round.webp.flat",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\layout_activity_ride_details.xml.flat",
+        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_ride_details.xml"
     },
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\menu_my_navigation_items.xml.flat",
@@ -20,12 +20,12 @@
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\drawable-hdpi\\button_background.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\navigation_mobile_navigation_only_attendance.xml.flat",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\navigation\\mobile_navigation_only_attendance.xml"
-    },
-    {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\drawable_ic_menu_slideshow.xml.flat",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\drawable\\ic_menu_slideshow.xml"
+    },
+    {
+        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\navigation_mobile_navigation_only_attendance.xml.flat",
+        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\navigation\\mobile_navigation_only_attendance.xml"
     },
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\raw_mycertification.der.flat",
@@ -472,10 +472,6 @@
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\drawable\\ic_baseline_directions_car_24.xml"
     },
     {
-        "merged": "com.thoughtpearl.conveyance.app-merged_res-6:/layout_nav_header_dashboard.xml.flat",
-        "source": "com.thoughtpearl.conveyance.app-main-8:/layout/nav_header_dashboard.xml"
-    },
-    {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\mipmap-xxhdpi_ic_launcher_foreground.png.flat",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-debug-7:\\mipmap-xxhdpi\\ic_launcher_foreground.png"
     },
@@ -506,6 +502,14 @@
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\drawable_ic_dashboard_black_24dp.xml.flat",
         "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\drawable\\ic_dashboard_black_24dp.xml"
+    },
+    {
+        "merged": "com.thoughtpearl.conveyance.app-merged_res-6:/xml_network_security_config.xml.flat",
+        "source": "com.thoughtpearl.conveyance.app-main-8:/xml/network_security_config.xml"
+    },
+    {
+        "merged": "com.thoughtpearl.conveyance.app-merged_res-6:/layout_alert_layout.xml.flat",
+        "source": "com.thoughtpearl.conveyance.app-main-8:/layout/alert_layout.xml"
     },
     {
         "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-merged_res-6:\\drawable_ic_baseline_email_24.xml.flat",

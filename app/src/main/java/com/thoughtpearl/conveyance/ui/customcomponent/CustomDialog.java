@@ -10,6 +10,7 @@ import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 
 import com.thoughtpearl.conveyance.R;
@@ -21,6 +22,9 @@ import java.util.List;
 public class CustomDialog {
     int selectedPosition = -1;
     Context context;
+
+    boolean useGps = true;
+    boolean isCancelled = false;
     ArrayList<RideReason> reasonArrayList;
     public CustomDialog(Context context, ArrayList<RideReason> reasonArrayList) {
         this.context = context;
@@ -45,6 +49,15 @@ public class CustomDialog {
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         Spinner sItems = dialog.findViewById(R.id.mySpinner);
+        RadioButton useGpsRadioBtn = dialog.findViewById(R.id.gpslocation);
+        RadioButton useFusedRadioBtn = dialog.findViewById(R.id.fusedlocation);
+        if (useGpsRadioBtn!= null) {
+            useGpsRadioBtn.setOnClickListener(v -> useGps = useGpsRadioBtn.isChecked());
+        }
+        if (useFusedRadioBtn!= null) {
+            useFusedRadioBtn.setOnClickListener(v -> useGps = !useFusedRadioBtn.isChecked());
+        }
+
         sItems.setAdapter(adapter);
 
         sItems.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -66,11 +79,14 @@ public class CustomDialog {
 
         Button cancelBtn = dialog.findViewById(R.id.cancelAlertButton);
         cancelBtn.setOnClickListener(view -> {
+            isCancelled = true;
             dialog.dismiss();
+            listener.onDismiss(dialog);
         });
 
         Button okBtn = dialog.findViewById(R.id.okAlertButton);
         okBtn.setOnClickListener(view -> {
+            isCancelled = false;
             dialog.dismiss();
             listener.onDismiss(dialog);
         });
@@ -80,6 +96,14 @@ public class CustomDialog {
 
     public int getSelectedPosition() {
         return selectedPosition;
+    }
+
+    public boolean isUseGps() {
+        return useGps;
+    }
+
+    public boolean isCancelled() {
+        return useGps;
     }
 }
 

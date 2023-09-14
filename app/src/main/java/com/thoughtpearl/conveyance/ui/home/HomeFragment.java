@@ -213,7 +213,7 @@ public class HomeFragment extends Fragment {
                         /*long startTime = SystemClock.currentThreadTimeMillis();
                         while (!recordRideSyncJob.isCompleted()) {
                             if (TimeUnit.MILLISECONDS.toMinutes(SystemClock.currentThreadTimeMillis() - startTime) > 2) {
-                                Log.d("TRIP", "Explicitly closing the sync job");
+                                LocationApp.logs("TRIP", "Explicitly closing the sync job");
                                 recordRideSyncJob.setCompleted(true);
                                 mTimer.cancel();
                                 isSyncJobRunning = false;
@@ -222,7 +222,7 @@ public class HomeFragment extends Fragment {
                         }*/
 
                         if (!recordRideSyncJob.isSuccessful()) {
-                            Log.d("TRIP", "Sync job is not successful.");
+                            LocationApp.logs("TRIP", "Sync job is not successful.");
                             return;
                         }
 
@@ -243,7 +243,7 @@ public class HomeFragment extends Fragment {
                                             updateRide(totalDistanceInKm, sRideDate, sRideStartTime, sRideEndTime, relation.getTripRecord());
                                         }
                                     } catch (Exception exception) {
-                                        Log.d("TRIP", "Error while updating ride :" + exception.getMessage());
+                                        LocationApp.logs("TRIP", "Error while updating ride :" + exception.getMessage());
                                     }
                                 });
                             });
@@ -274,7 +274,7 @@ public class HomeFragment extends Fragment {
                             updateRide(totalDistanceInKm, sRideDate, sRideStartTime, sRideEndTime, relation.getTripRecord());
                         }
                     } catch (Exception exception) {
-                        Log.d("TRIP", "Error while updating ride :" + exception.getMessage());
+                        LocationApp.logs("TRIP", "Error while updating ride :" + exception.getMessage());
                     }
                 });
             });
@@ -357,13 +357,13 @@ public class HomeFragment extends Fragment {
 
                 @Override
                 public void onResponse(Call<Void> call, Response<Void> response) {
-                    Log.d("TRIP", "Ride completed :");
+                    LocationApp.logs("TRIP", "Ride completed :");
                     if (response.code() == 200 || response.code() == 201) {
                         AppExecutors.getInstance().getDiskIO().execute(() -> {
                             DatabaseClient.getInstance(mActivity).getTripDatabase().tripRecordDao().updateRecord(tripRecord);
                         });
                     } else {
-                        Log.d("TRIP", "Something went wrong while updating ride. Please try after some time");
+                        LocationApp.logs("TRIP", "Something went wrong while updating ride. Please try after some time");
                         //Toast.makeText(mActivity, "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
                     }
 
@@ -375,7 +375,7 @@ public class HomeFragment extends Fragment {
 
                 @Override
                 public void onFailure(Call<Void> call, Throwable t) {
-                    Log.d("TRIP", "HomeFragment sync job : onFailure :" + t);
+                    LocationApp.logs("TRIP", "HomeFragment sync job : onFailure :" + t);
                     AppExecutors.getInstance().getDiskIO().execute(()-> {
                         reCheckUnSyncRides();
                     });

@@ -25,20 +25,20 @@ public class PostLocationReceiver extends BroadcastReceiver {
     public static boolean isLocationTurnOnRequestSent = false;
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("TRIP", "Location update received on broadcast receiver :" + new Date().toString());
-        Log.d("TRIP", "TrackerUtility.isGpsEnabled(context) : " + TrackerUtility.isGpsEnabled(context));
+        LocationApp.logs("TRIP", "Location update received on broadcast receiver :" + new Date().toString());
+        LocationApp.logs("TRIP", "TrackerUtility.isGpsEnabled(context) : " + TrackerUtility.isGpsEnabled(context));
 
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             if (!locationOff) {
-                Log.d("TRIP", "Location turnoff request sent :" + new Date().toString());
+                LocationApp.logs("TRIP", "Location turnoff request sent :" + new Date().toString());
                 locationOff = true;
                 isLocationTurnOffRequestSent = true;
                 sentLocationTurnOffNotification(context, true);
             }
         } else {
             if (isLocationTurnOffRequestSent && !isLocationTurnOnRequestSent) {
-                Log.d("TRIP", "Location turnOn request sent :" + new Date().toString());
+                LocationApp.logs("TRIP", "Location turnOn request sent :" + new Date().toString());
                 isLocationTurnOnRequestSent = true;
                 sentLocationTurnOffNotification(context, false);
             }
@@ -48,12 +48,12 @@ public class PostLocationReceiver extends BroadcastReceiver {
         RecordRideSyncJob recordRideSyncJob = new RecordRideSyncJob(context, true, false, result -> {
             if(result instanceof  Result.Success) {
                 if (((Result.Success<Boolean>) result).data.booleanValue()) {
-                    Log.d("TRIP", " Success True : ride location sync successfully");
+                    LocationApp.logs("TRIP", " Success True : ride location sync successfully");
                 } else {
-                    Log.d("TRIP", " Success False : ride location sync failed from broadcast receiver:");
+                    LocationApp.logs("TRIP", " Success False : ride location sync failed from broadcast receiver:");
                 }
             } else {
-                Log.d("TRIP", "Error block : ride location sync failed from broadcast receiver:");
+                LocationApp.logs("TRIP", "Error block : ride location sync failed from broadcast receiver:");
             }
         });
         Timer tempTimer = new Timer();
@@ -93,12 +93,12 @@ public class PostLocationReceiver extends BroadcastReceiver {
         gpsTurnOfRequest.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
-                Log.d("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
             }
 
             @Override
             public void onFailure(Call<String> call, Throwable t) {
-                Log.d("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
             }
         });
     }

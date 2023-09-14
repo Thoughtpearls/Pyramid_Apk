@@ -79,6 +79,10 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.hypertrack.hyperlog.HLCallback;
+import com.hypertrack.hyperlog.HyperLog;
+import com.hypertrack.hyperlog.error.HLErrorResponse;
+import com.hypertrack.hyperlog.utils.HLDateTimeUtility;
 import com.thoughtpearl.conveyance.api.response.CreateTurnOnGpsRequest;
 import com.thoughtpearl.conveyance.ui.navigation.BottomNavigationActivity;
 import com.thoughtpearl.conveyance.LocationApp;
@@ -110,6 +114,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -198,6 +204,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
     private TripRecord runningTripRecord;
     private List<com.thoughtpearl.conveyance.respository.entity.Location> locationList = new ArrayList<>();
     private ArrayList<RideReason> ridePurposeList = new ArrayList<>();
+    private boolean isStopRideTriggered;
 
     @Override
     public void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
@@ -213,6 +220,46 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         mStartUpdatesButton = findViewById(R.id.start_updates_button);
         mStartUpdatesButton.setOnClickListener(view -> {
             try {
+
+                if (HyperLog.hasPendingDeviceLogs()) {
+                    HashMap<String, String> headers = new HashMap<>();
+                    headers.put("userName", LocationApp.getUserName(this));
+                    headers.put("deviceId", LocationApp.DEVICE_ID);
+                    String fileName = LocationApp.getUserName(this) +"_" + HLDateTimeUtility.getCurrentTime();
+                    File file = HyperLog.getDeviceLogsInFile(this);
+                    Map<String, RequestBody> bodyMap = new HashMap<>();
+
+                    RequestBody filePart = RequestBody.create(MediaType.parse("text/plain"), file);
+                    bodyMap.put("file\"; filename=\"" + fileName + "\".txt", filePart);
+
+                    Call<Void> uploadLogs = ApiHandler.getClient().uploadLogs(LocationApp.getUserName(this), LocationApp.DEVICE_ID, bodyMap);
+                    uploadLogs.enqueue(new Callback<Void>() {
+                        @Override
+                        public void onResponse(Call<Void> call, Response<Void> response) {
+                            if (response.isSuccessful()) {
+                                LocationApp.logs("TRIP", "logs has been sent : " + response.body());
+                                HyperLog.deleteLogs();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Void> call, Throwable t) {
+                            LocationApp.logs("TRIP","failure : " + t.getMessage());
+                        }
+                    });
+                }
+
+               /* HyperLog.pushLogs(this, headers,false, new HLCallback() {
+                    @Override
+                    public void onSuccess(@NonNull Object response) {
+                        Log.d("TRIP", "logs sent successfully to server");
+                    }
+
+                    @Override
+                    public void onError(@NonNull HLErrorResponse HLErrorResponse) {
+                        Log.d("TRIP", "failed to sent logs" + HLErrorResponse.getErrorMessage());
+                    }
+                });*/
                 mStartUpdatesButton.setEnabled(false);
                 startUpdatesButtonHandler(view);
             } catch (Exception exception) {
@@ -278,14 +325,14 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
 
     private void subscribeToObservers() {
         MyService.isTrackingOn.observe(this, aBoolean -> {
-            Log.d("TRIP", "isTrackingOn : Service is running  : " + aBoolean);
+            LocationApp.logs("TRIP", "isTrackingOn : Service is running  : " + aBoolean);
             isServiceRunning = aBoolean.booleanValue();
             mRequestingLocationUpdates = isServiceRunning;
             updateUI();
         });
 
         MyService.totalDistance.observe(this, aTotalDistance -> {
-            Log.d("TRIP", "totalDistance: Service is running  : aTotalDistance :" + aTotalDistance.floatValue());
+            LocationApp.logs("TRIP", "totalDistance: Service is running  : aTotalDistance :" + aTotalDistance.floatValue());
             totalDistance = aTotalDistance.floatValue();
             if (totalDistance > 0) {
                 totalDistanceTextView.setText(TrackerUtility.roundOffDoubleToString((double) totalDistance));
@@ -310,23 +357,23 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             mCurrentLocation = location;
             updateLocationUI();
 
-            Log.d("TRIP", "mCurrentLocation: Service is running  : Lat :" + location.getLatitude() + " Lng: " + location.getLongitude());
+            LocationApp.logs("TRIP", "mCurrentLocation: Service is running  : Lat :" + location.getLatitude() + " Lng: " + location.getLongitude());
         });
 
         MyService.runningTripRecord.observe(this, tripRecord -> {
-            Log.d("TRIP", "runningTripRecord: Service is running  : TripId :" + tripRecord.getTripId());
+            LocationApp.logs("TRIP", "runningTripRecord: Service is running  : TripId :" + tripRecord.getTripId());
             runningTripRecord = tripRecord;
-            if (runningTripRecord != null && runningTripRecord.isStatus()) {
+            if (runningTripRecord != null && runningTripRecord.isStatus() && isStopRideTriggered) {
                 AppExecutors.getInstance().getMainThread().execute(() -> {
                     LocationApp.dismissLoader();
                     showFinishRideDetailPopUp();
+                    isStopRideTriggered = false;
                 });
-
             }
         });
 
         MyService.locationListData.observe(this, locations -> {
-            Log.d("TRIP", "locationListData: Service is running  : location update :" + locations);
+            LocationApp.logs("TRIP", "locationListData: Service is running  : location update :" + locations);
             locationList = locations;
         });
     }
@@ -421,7 +468,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                         locationRelation = DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().getByTripId(runningTripRecord.getTripId());
                         locationList = locationRelation.locations;
                         if (!TrackerUtility.isMyServiceRunning(MyService.class, this)) {
-                            Log.d("TRIP", "Restarting background service :");
+                            LocationApp.logs("TRIP", "Restarting background service :");
                             //MyService.runningTripRecord.setValue(runningTripRecord);
                             //MyService.totalDistance.setValue(runningTripRecord.totalDistance);
                             //MyService.locationListData.setValue((ArrayList<com.thoughtpearl.conveyance.respository.entity.Location>) locationList);
@@ -471,7 +518,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
     private void moveCameraToUser(LatLng latLng) {
         if (latLng != null && mMap != null ) {
             try {
-                animateToMeters(100, latLng);
+                animateToMeters(1000, latLng);
             /* mMap.animateCamera(
                     CameraUpdateFactory.newLatLngZoom(
                             latLng,
@@ -479,7 +526,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                     )
             );*/
             } catch (Exception e) {
-                Log.d("TRIP", "error in moving map :" + e.getMessage());
+                LocationApp.logs("TRIP", "error in moving map :" + e.getMessage());
             }
         }
     }
@@ -542,7 +589,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
      * updates have already been requested.
      */
     public void startUpdatesButtonHandler(View view) {
-        Log.d("TRIP", "startUpdatesButtonHandler clicked");
+        LocationApp.logs("TRIP", "startUpdatesButtonHandler clicked");
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             Toast.makeText(RecordRideActivity.this, "Please check your network connection", Toast.LENGTH_LONG).show();
@@ -573,7 +620,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         }
     }
 
-    public void startRide(Ride ride) {
+    public void startRide(Ride ride, boolean isUseGps) {
         mMap.clear();
         totalDistance = 0.0f;
         locationList = new ArrayList<>();
@@ -582,12 +629,13 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
 
         AppExecutors.getInstance().getDiskIO().execute(() -> {
             UUID tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
-            Log.d("TRIP", "TripId:" + tripId);
-            Log.d("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
+            LocationApp.logs("TRIP", "TripId:" + tripId);
+            LocationApp.logs("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
 
             runOnUiThread(() -> {
                 Bundle rideBundle = new Bundle();
                 rideBundle.putParcelable("ride", ride);
+                rideBundle.putBoolean("isUseGps", isUseGps);
                 Intent intent = new Intent(getApplicationContext(), MyService.class);
                 intent.setAction(MyService.START_SERVICE);
                 intent.putExtras(rideBundle);
@@ -628,7 +676,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                                     "%d:%02d:%02d", hours,
                                     minutes, secs);
 
-                    //Log.d("TRIP", "timer  value :" + time);
+                    //LocationApp.logs"TRIP", "timer  value :" + time);
                     // Set the text view text.
                     runOnUiThread(() -> {
                         //totalDurationTextView = findViewById(R.id.total_duration);
@@ -651,7 +699,8 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
      * Handles the Stop Updates button, and requests removal of location updates.
      */
     public void stopUpdatesButtonHandler(View view) {
-        Log.d("TRIP", "stopUpdatesButtonHandler : clicked");
+        isStopRideTriggered = true;
+        LocationApp.logs("TRIP", "stopUpdatesButtonHandler : clicked");
         // It is a good practice to remove location requests when the activity is in a paused or
         // stopped state. Doing so helps battery performance and is especially
         // recommended in applications that request frequent location updates.
@@ -718,12 +767,12 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         gpsTurnOfRequest.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
-                Log.d("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
             }
 
             @Override
             public void onFailure(Call<String> call, Throwable t) {
-                Log.d("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
             }
         });
     }
@@ -919,7 +968,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
      */
     private void stopLocationUpdates() {
         if (!mRequestingLocationUpdates) {
-            Log.d(TAG, "stopLocationUpdates: updates never requested, no-op.");
+            LocationApp.logs(TAG, "stopLocationUpdates: updates never requested, no-op.");
             return;
         }
 
@@ -1270,11 +1319,16 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         if(!RecordRideActivity.this.isFinishing()) {
             CustomDialog dialog = new CustomDialog(this, ridePurposeList);
             dialog.show(dialogInterface -> {
-                Log.d("TRIP", "showRidePurposeDialog button clicked");
-                if (isRidePurposeOkButtonClicked) {
-                    Log.d("TRIP", "showRidePurposeDialog button already clicked");
+                if (dialog.isCancelled()) {
+                    mStartUpdatesButton.setEnabled(true);
                     return;
                 }
+                LocationApp.logs("TRIP", "showRidePurposeDialog button clicked");
+                if (isRidePurposeOkButtonClicked) {
+                    LocationApp.logs("TRIP", "showRidePurposeDialog button already clicked");
+                    return;
+                }
+
                 isRidePurposeOkButtonClicked = true;
                 Date myDate = new Date();
                 String startDate = TrackerUtility.getDateString(myDate);
@@ -1306,7 +1360,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                         public void onResponse(Call<String> call, Response<String> response) {
                             if (response.code() == 201) {
                                 ride.setId(response.body());
-                                startRide(ride);
+                                startRide(ride, dialog.isUseGps());
                             } else {
                                 String message = "Can not start ride at the moment. Please try after some time";
                                 if (response.code() == 401) {

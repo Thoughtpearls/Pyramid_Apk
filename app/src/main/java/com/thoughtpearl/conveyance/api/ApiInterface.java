@@ -53,6 +53,12 @@ public interface ApiInterface {
                               @PartMap Map<String, RequestBody> map);
 
     @Multipart
+    @POST("/api/log/upload")     // API's endpoints
+    public Call<Void> uploadLogs(@Header("userName") String username,
+                                    @Header("deviceId") String deviceId,
+                                    @PartMap Map<String, RequestBody> map);
+
+    @Multipart
     @POST("/api/attendances/markAttendance")     // API's endpoints
     public Call<ResponseBody> markAttendance(@Header("userName") String username,
                                              @Header("deviceId") String deviceId,

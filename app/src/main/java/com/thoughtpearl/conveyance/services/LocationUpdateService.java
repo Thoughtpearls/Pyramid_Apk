@@ -26,6 +26,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 
+import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.respository.database.TripDatabase;
@@ -65,7 +66,7 @@ public class LocationUpdateService extends Service {
         public void onLocationResult(LocationResult locationResult) {
             super.onLocationResult(locationResult);
             Location currentLocation = locationResult.getLastLocation();
-            Log.d("Locations", currentLocation.getLatitude() + "," + currentLocation.getLongitude());
+            LocationApp.logs("Locations", currentLocation.getLatitude() + "," + currentLocation.getLongitude());
             //Share/Publish Location
             TripRecord tripRecord = new TripRecord();
             tripRecord.tripId = UUID.randomUUID();

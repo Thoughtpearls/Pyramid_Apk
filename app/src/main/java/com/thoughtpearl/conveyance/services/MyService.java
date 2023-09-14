@@ -53,6 +53,7 @@ import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
+import com.hypertrack.hyperlog.HyperLog;
 import com.thoughtpearl.conveyance.GpsStatusChangeReceiver;
 import com.thoughtpearl.conveyance.api.response.CreateTurnOnGpsRequest;
 import com.thoughtpearl.conveyance.respository.syncjob.PostLocationReceiver;
@@ -185,6 +186,7 @@ public class MyService extends LifecycleService implements LocationListener {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
+        LocationApp.logs("setup location requestLocationUpdates");
         locationManager.requestLocationUpdates(gpsFreqInMillis, gpsFreqInDistance, criteria, this, null);
     }
 
@@ -224,7 +226,7 @@ public class MyService extends LifecycleService implements LocationListener {
                                     "%02d:%02d:%02d", hours,
                                     minutes, secs);
 
-                    //Log.d("TRIP", "timer  value :" + time);
+                    //LocationApp.logs("TRIP", "timer  value :" + time);
                     timerCount.setValue(time);
                     updateNotificationManager(time);
                     // Set the text view text.
@@ -265,7 +267,12 @@ public class MyService extends LifecycleService implements LocationListener {
                             return;
                         }
 
-                        if (filterAndAddLocation(location)) {
+                        boolean isAcceptedLocation = filterAndAddLocation(location);
+                        LocationApp.logs("Ride Id :  " + ride.getId() + " " + location.getLatitude() +" : " +location.getLongitude() + " isAcceptedLocation : " + isAcceptedLocation);
+
+                        isAcceptedLocation = isAcceptedLocation(location, isAcceptedLocation);
+
+                        if (isAcceptedLocation) {
                             if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
                                 updateLocationAndDistance(location);
                                 updateNotificationManager(timerCount.getValue());
@@ -279,12 +286,12 @@ public class MyService extends LifecycleService implements LocationListener {
             @SuppressLint("MissingPermission")
             public boolean isUsableLocation(Location location) {
                 float lastLocationAccuracy = client.getLastLocation() != null && client.getLastLocation().isComplete() ? client.getLastLocation().getResult().getAccuracy() : 20;
-                Log.d("TRIP", "lastLocationAccuracy :" + lastLocationAccuracy);
+                LocationApp.logs("TRIP", "lastLocationAccuracy :" + lastLocationAccuracy);
                 if (location != null) {
-                    Log.d("TRIP", "location.hasAccuracy():" + location.hasAccuracy());
-                    Log.d("TRIP", "location.getAccuracy(): " + location.getAccuracy());
-                    Log.d("TRIP", "location.getSpeed():" + location.getSpeed());
-                    Log.d("TRIP", "location.getAccuracy() <= lastLocationAccuracy:" + (location.getAccuracy() <= lastLocationAccuracy));
+                    LocationApp.logs("TRIP", "location.hasAccuracy():" + location.hasAccuracy());
+                    LocationApp.logs("TRIP", "location.getAccuracy(): " + location.getAccuracy());
+                    LocationApp.logs("TRIP", "location.getSpeed():" + location.getSpeed());
+                    LocationApp.logs("TRIP", "location.getAccuracy() <= lastLocationAccuracy:" + (location.getAccuracy() <= lastLocationAccuracy));
                 }
                 return location != null && location.hasAccuracy() && location.getAccuracy() <= lastLocationAccuracy && location.getSpeed() > 0;
             }
@@ -297,18 +304,37 @@ public class MyService extends LifecycleService implements LocationListener {
         };
     }
 
+    private boolean isAcceptedLocation(Location location, boolean isAcceptedLocation) {
+        mLastLocation = mCurrentLocation.getValue();
+        if (location == null || mLastLocation == null) {
+            return isAcceptedLocation;
+        }
+        double distance = location.distanceTo(mLastLocation);
+        LocationApp.logs("TRIP", "pos 1 lat :" + location.getLatitude() + " long" + location.getLongitude());
+        LocationApp.logs("TRIP", "pos 2 lat :" + mLastLocation.getLatitude() + " long" + mLastLocation.getLongitude());
+        LocationApp.logs("TRIP", "Distance difference : " + distance);
+
+        manualDistance += TrackerUtility.calculateDistance(location.getLatitude(), location.getLongitude(), mLastLocation.getLatitude(), mLastLocation.getLongitude(), "M");
+        LocationApp.logs("TRIP", "Distance difference manualDistance : " + manualDistance);
+
+        if (distance < 3 || (distance > 2000 && TimeUnit.MILLISECONDS.toMinutes(location.getTime() - mLastLocation.getTime()) < 2)) { //5 meter per second
+            isAcceptedLocation = false;
+        }
+        return isAcceptedLocation;
+    }
+
     private boolean updateLocationAndDistance(Location location) {
         mLastLocation = mCurrentLocation.getValue();
         if (mLastLocation != null && mLastLocation.hasSpeed()) {
             double distance = location.distanceTo(mLastLocation);//TrackerUtility.calculateDistance(location.getLatitude(), location.getLongitude(), mLastLocation.getLatitude(), mLastLocation.getLongitude(), "M");//
-            Log.d("TRIP", "pos 1 lat :" + location.getLatitude() + " long" + location.getLongitude());
-            Log.d("TRIP", "pos 2 lat :" + mLastLocation.getLatitude() + " long" + mLastLocation.getLongitude());
-            Log.d("TRIP", "Distance difference : " + distance);
+            LocationApp.logs("TRIP", "pos 1 lat :" + location.getLatitude() + " long" + location.getLongitude());
+            LocationApp.logs("TRIP", "pos 2 lat :" + mLastLocation.getLatitude() + " long" + mLastLocation.getLongitude());
+            LocationApp.logs("TRIP", "Distance difference : " + distance);
 
             manualDistance += TrackerUtility.calculateDistance(location.getLatitude(), location.getLongitude(), mLastLocation.getLatitude(), mLastLocation.getLongitude(), "M");
-            Log.d("TRIP", "Distance difference manualDistance : " + manualDistance);
+            LocationApp.logs("TRIP", "Distance difference manualDistance : " + manualDistance);
              // 300 meters in 300 seconds
-            if (distance < 3 || (distance > 2000 && TimeUnit.MILLISECONDS.toSeconds(location.getTime() - mLastLocation.getTime()) < 30)) { //5 meter per second
+            if (distance < 3 || (distance > 2000 && TimeUnit.MILLISECONDS.toMinutes(location.getTime() - mLastLocation.getTime()) < 2)) { //5 meter per second
                 return true;
             }
 
@@ -409,7 +435,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
                     databaseClient.getTripDatabase().tripRecordDao().save(locationTemp);
                 } catch (SQLiteConstraintException sqLiteConstraintException) {
-                    Log.d("TRIP", sqLiteConstraintException.getMessage());
+                    LocationApp.logs("TRIP", sqLiteConstraintException.getMessage());
 
                     AppExecutors.getInstance().getNetworkIO().execute(() -> {
                         com.thoughtpearl.conveyance.api.response.LocationRequest request = new com.thoughtpearl.conveyance.api.response.LocationRequest("", location.getLatitude(), location.getLongitude(), tripId.toString(), locationTemp.getTimestamp());
@@ -428,12 +454,15 @@ public class MyService extends LifecycleService implements LocationListener {
                                     });
 
                                 } else {
+                                    LocationApp.logs("TRIP", "Location data sync failed response.code() " + response.code() + " erorr :" + response.errorBody());
                                     showToastMessage("Location data sync failed :" + response.errorBody());
                                 }
                             }
 
                             @Override
                             public void onFailure(Call<List<String>> call, Throwable t) {
+                                LocationApp.logs("TRIP", "Location data sync failed : Exception: " + t.getMessage());
+                                LocationApp.logs(t);
                                 showToastMessage("Location data sync failed :" + t.getMessage());
                             }
                         });
@@ -447,7 +476,7 @@ public class MyService extends LifecycleService implements LocationListener {
     }
 
     private void updateNotificationManager(String duration) {
-        //Log.d("TRIP", "Lat:" + location.getLatitude() + " Long :" + location.getLongitude());
+        //LocationApp.logs("TRIP", "Lat:" + location.getLatitude() + " Long :" + location.getLongitude());
         //Toast.makeText(context, "Lat:" +location.getLatitude() + " Long :" +location.getLongitude(), Toast.LENGTH_SHORT).show();
         NumberFormat formatter = NumberFormat.getInstance(Locale.US);
         formatter.setMaximumFractionDigits(2);
@@ -490,6 +519,7 @@ public class MyService extends LifecycleService implements LocationListener {
                     manualDistance = 0d;
                     Bundle bundle = intent.getExtras();
                     ride = bundle.getParcelable("ride");
+                    useGPSLocationForApp = bundle.getBoolean("isUseGps", true);
                     tripId = UUID.fromString(ride.getId());
                     AppExecutors.getInstance().getDiskIO().execute(() -> {
                         TripRecord tripRecord = new TripRecord();
@@ -529,6 +559,7 @@ public class MyService extends LifecycleService implements LocationListener {
                     }
                     isTrackingOn.postValue(false);
                     String imagePath = intent.getExtras().get("screenshot_path").toString();
+                    LocationApp.logs("TRIP", "STOP ride request : imagePath :" + imagePath);
                     stop(imagePath);
                     //seconds = 0;
                     if (timerHandler != null) {
@@ -603,7 +634,7 @@ public class MyService extends LifecycleService implements LocationListener {
         while(!recordRideSyncJob.isCompleted()) {
             new Handler(Looper.getMainLooper()).postDelayed(()-> {
                 if (TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - startTime) > 2) {
-                    Log.d("TRIP", "Explicitly closing the sync job");
+                    LocationApp.logs("TRIP", "Explicitly closing the sync job");
                     recordRideSyncJob.setCompleted(true);
                     tempTimer.cancel();
                 }
@@ -614,6 +645,7 @@ public class MyService extends LifecycleService implements LocationListener {
     }
 
     private void updateRide(String imagePath) {
+        LocationApp.logs("updateRide imagePath : " + imagePath);
         AppExecutors.getInstance().getDiskIO().execute(() -> {
             TripRecord tripRecord = runningTripRecord.getValue();
             if (tripRecord != null) {
@@ -633,7 +665,7 @@ public class MyService extends LifecycleService implements LocationListener {
                 }
                 ride.setRideDistance(totalDistanceValue);
                 File file = new File(imagePath);
-                Log.d("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
+                LocationApp.logs("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
 
                 RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
                 RequestBody id = RequestBody.create(MediaType.parse("text/plain"), ride.getId());
@@ -657,7 +689,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {
-                        Log.d("TRIP", "Ride completed :");
+                        LocationApp.logs("TRIP", "Ride completed :" + response.code());
                         if (response.code() == 200 || response.code() == 201) {
                             tripRecord.setStatus(true);
                             AppExecutors.getInstance().getDiskIO().execute(() -> {
@@ -673,7 +705,8 @@ public class MyService extends LifecycleService implements LocationListener {
 
                     @Override
                     public void onFailure(Call<Void> call, Throwable t) {
-                        Log.d("TRIP", "Ride not completed :" + t);
+                        LocationApp.logs("TRIP", "Ride not completed :" + t);
+                        LocationApp.logs(t);
                         AppExecutors.getInstance().getMainThread().execute(() -> {
                             LocationApp.dismissLoader();
                         });
@@ -692,7 +725,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
     @SuppressLint("MissingPermission")
     private void start() {
-
+        LocationApp.logs("started service :");
         setupInitialValues();
         Intent notificationIntent = new Intent(this, RecordRideActivity.class);
         //notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -702,6 +735,7 @@ public class MyService extends LifecycleService implements LocationListener {
         builder.setContentIntent(pendingIntent);
         startForeground(NOTIFICATION_ID, builder.build());
 
+        LocationApp.logs("started service : useGPSLocationForApp : " + useGPSLocationForApp);
         if (useGPSLocationForApp) {
             //context.registerReceiver(gpsStatusChangeReceiver,  new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION));
             //LocationServiceManager
@@ -784,7 +818,7 @@ public class MyService extends LifecycleService implements LocationListener {
                         System.currentTimeMillis(), 60000, locationUpdateBroadcaster);
             }
         }*/
-        Log.d("TRIP", "Alert set for every one minute");
+        LocationApp.logs("TRIP", "Alert set for every one minute");
     }
 
     private void setupInitialValues() {
@@ -827,7 +861,7 @@ public class MyService extends LifecycleService implements LocationListener {
         @Override
         public void run() {
             // run on another thread
-            Log.d("TRIP", "Timer job is running every one minute : " + TrackerUtility.getTimeString(new Date()));
+            LocationApp.logs("TRIP", "Timer job is running every one minute : " + TrackerUtility.getTimeString(new Date()));
             mHandler.post(() -> {
                 // display toast
                 AtomicReference<List<com.thoughtpearl.conveyance.respository.entity.Location>> unSyncList = new AtomicReference<>(new ArrayList<>());
@@ -836,7 +870,7 @@ public class MyService extends LifecycleService implements LocationListener {
                     unSyncList.set(databaseClient.getTripDatabase().tripRecordDao().getUnSyncServerLocations());
                     if (unSyncList.get().size() > 0) {
                         updateLocationsOnServer(unSyncList.get());
-                        Log.d("TRIP", "UPDATING RECORDS..");
+                        LocationApp.logs("TRIP", "UPDATING RECORDS..");
                         finishTaskCount = 0;
                     } else {
                         if (finishTaskCount++ >= 5) {
@@ -854,6 +888,7 @@ public class MyService extends LifecycleService implements LocationListener {
         updateLocationsOnServer(unSyncedLocations, 0);
     }
     public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, int retryAttemptCount) {
+         LocationApp.logs("update locations : " + (unSyncedLocations != null ? unSyncedLocations.size() : 0));
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             showToastMessage("Please check your network connection");
         } else {
@@ -867,8 +902,8 @@ public class MyService extends LifecycleService implements LocationListener {
             createLocationCall.enqueue(new Callback<List<String>>() {
                 @Override
                 public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                    LocationApp.logs("update locations response.code() : " + response.code());
                     if (response.code() == 201) {
-
                         AppExecutors.getInstance().getDiskIO().execute(() -> {
                             unSyncedLocations.forEach(location -> {
                                 location.serverSync = true;
@@ -899,6 +934,8 @@ public class MyService extends LifecycleService implements LocationListener {
                         updateLocationsOnServer(unSyncedLocations, 1);
                     }
                     showToastMessage("Location data sync failed");
+                    LocationApp.logs("Location data sync failed : ");
+                    LocationApp.logs(t);
                 }
             });
         }
@@ -922,19 +959,19 @@ public class MyService extends LifecycleService implements LocationListener {
         long age = getLocationAge(location);
 
         /*if(age > 15 * 1000){ //more than 5 seconds
-            Log.d("TRIP", "Location is old");
+            LocationApp.logs("TRIP", "Location is old");
             return false;
         }*/
 
         if (location.getAccuracy() <= 0) {
-            Log.d("TRIP", "Latitidue and longitude values are invalid.");
+            LocationApp.logs("TRIP", "Latitidue and longitude values are invalid.");
             return false;
         }
 
         //setAccuracy(newLocation.getAccuracy());
         float horizontalAccuracy = location.getAccuracy();
         if(horizontalAccuracy > 20) { //10meter filter
-            Log.d("TRIP", "Accuracy is too low.");
+            LocationApp.logs("TRIP", "Accuracy is too low.");
             return false;
         }
 
@@ -958,9 +995,9 @@ public class MyService extends LifecycleService implements LocationListener {
         predictedLocation.setLatitude(predictedLat);//your coords of course
         predictedLocation.setLongitude(predictedLng);
         float predictedDeltaInMeters =  predictedLocation.distanceTo(location);
-
+        LocationApp.logs(" " + predictedDeltaInMeters);
         if (predictedDeltaInMeters > 60) {
-            Log.d("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
+            LocationApp.logs("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
             customLocationFilter.consecutiveRejectCount += 1;
 
             if(customLocationFilter.consecutiveRejectCount > 3) {
@@ -976,7 +1013,7 @@ public class MyService extends LifecycleService implements LocationListener {
         intent.putExtra("location", predictedLocation);
         LocalBroadcastManager.getInstance(this.getApplication()).sendBroadcast(intent);*/
 
-        Log.d("TRIP", "Location quality is good enough.");
+        LocationApp.logs("TRIP", "Location quality is good enough.");
         currentSpeed = location.getSpeed();
         //locationList.add(location);
         return true;
@@ -987,19 +1024,19 @@ public class MyService extends LifecycleService implements LocationListener {
         long age = getLocationAge(location);
 
         if (age > 15 * 1000) { //more than 5 seconds
-            Log.d("TRIP", "Location is old");
+            LocationApp.logs("TRIP", "Location is old :" + age);
             return false;
         }
 
         if (location.getAccuracy() <= 0) {
-            Log.d("TRIP", "Latitidue and longitude values are invalid.");
+            LocationApp.logs("TRIP", "Latitude and longitude values are invalid." + location.getAccuracy());
             return false;
         }
 
         //setAccuracy(newLocation.getAccuracy());
         float horizontalAccuracy = location.getAccuracy();
         if(horizontalAccuracy > 30) { //10meter filter
-            Log.d("TRIP", "Accuracy is too low.");
+            LocationApp.logs("TRIP", "Accuracy is too low. horizontalAccuracy :" + horizontalAccuracy);
             return false;
         }
 
@@ -1025,7 +1062,7 @@ public class MyService extends LifecycleService implements LocationListener {
         float predictedDeltaInMeters =  predictedLocation.distanceTo(location);
 
         if (predictedDeltaInMeters > 60) {
-            Log.d("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
+            LocationApp.logs("TRIP", "custom Filter detects mal GPS, we should probably remove this from track");
             customLocationFilter.consecutiveRejectCount += 1;
 
             if (customLocationFilter.consecutiveRejectCount > 3) {
@@ -1041,8 +1078,9 @@ public class MyService extends LifecycleService implements LocationListener {
         intent.putExtra("location", predictedLocation);
         LocalBroadcastManager.getInstance(this.getApplication()).sendBroadcast(intent);*/
 
-        Log.d("TRIP", "Location quality is good enough.");
+        LocationApp.logs("TRIP", "Location quality is good enough.");
         currentSpeed = location.getSpeed();
+        LocationApp.logs("TRIP", "current Speed :" + currentSpeed);
         //locationList.add(location);
         return true;
     }
@@ -1050,7 +1088,8 @@ public class MyService extends LifecycleService implements LocationListener {
     //This is where we detect the app is being killed, thus stop service.
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        Log.d("TRIP", "onTaskRemoved ");
+        LocationApp.logs("Terminated background location service:" + ride != null ? ride.getId() : " null");
+        LocationApp.logs("TRIP", "onTaskRemoved : location tracking being killed");
         this.stopUpdatingLocation();
         stopSelf();
 
@@ -1080,9 +1119,9 @@ public class MyService extends LifecycleService implements LocationListener {
         if (provider.equals(LocationManager.GPS_PROVIDER)) {
             if (status == LocationProvider.OUT_OF_SERVICE) {
                 //notifyLocationProviderStatusUpdated(false);
-                Log.d("TRIP", "GPS is out of service");
+                LocationApp.logs("TRIP", "GPS is out of service");
             } else {
-                Log.d("TRIP", "GPS is on service");
+                LocationApp.logs("TRIP", "GPS is on service");
                 //notifyLocationProviderStatusUpdated(true);
             }
         }
@@ -1092,7 +1131,7 @@ public class MyService extends LifecycleService implements LocationListener {
     public void onLocationChanged(@NonNull Location location) {
         if (useGPSLocationForApp) {
             boolean isValidLocation = filterAndAddLocationLocationManager(location);
-            Log.d("TRIP", "onLocationChanged : lat " + location.getLatitude() + " long : " + location.getLongitude() + "isAccurate :" + isValidLocation);
+            LocationApp.logs("TRIP", "onLocationChanged : lat " + location.getLatitude() + " long : " + location.getLongitude() + "isAccurate :" + isValidLocation);
 
             if (isTrackingOn != null && isTrackingOn.getValue() != null && isTrackingOn.getValue()) {
                 updateNotificationManager(timerCount.getValue());
@@ -1101,9 +1140,13 @@ public class MyService extends LifecycleService implements LocationListener {
                         showToastMessage("Please turn off developer option from settings. Without that ride will not be recorded.");
                         return;
                     }
+                    LocationApp.logs( "onLocationChanged : isValidLocation :" + isValidLocation);
+
+                     isValidLocation = isAcceptedLocation(location, isValidLocation);
 
                     if (isValidLocation) {
                         if (isTrackingOn.getValue() != null && isTrackingOn.getValue().booleanValue()) {
+                            LocationApp.logs( "onLocationChanged : tracking is On ");
                             updateLocationAndDistance(location);
                             updateNotificationManager(timerCount.getValue());
                         }
@@ -1116,7 +1159,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
     @Override
     public void onProviderEnabled(String provider) {
-        Log.d("TRIP", "onProviderEnabled : " + provider);
+        LocationApp.logs("TRIP", "onProviderEnabled : " + provider);
         /*LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             sentLocationTurnOffNotification(this, false);
@@ -1125,7 +1168,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
     @Override
     public void onProviderDisabled(String provider) {
-        Log.d("TRIP", "onProviderDisabled : " + provider);
+        LocationApp.logs("TRIP", "onProviderDisabled : " + provider);
         /*LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             sentLocationTurnOffNotification(this, true);
@@ -1172,12 +1215,12 @@ public class MyService extends LifecycleService implements LocationListener {
         gpsTurnOfRequest.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
-                Log.d("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification+( " + response.toString() + ") : gps turn Off request send successfully.");
             }
 
             @Override
             public void onFailure(Call<String> call, Throwable t) {
-                Log.d("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
+                LocationApp.logs("TRIP", " createLocationTurnOffNotification : gps turn Off : onFailure - " + t.getMessage());
             }
         });
     }

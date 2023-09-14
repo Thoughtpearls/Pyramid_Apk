@@ -10,7 +10,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -38,19 +37,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -60,7 +56,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.util.concurrent.ListenableFuture;
 import com.roomorama.caldroid.CaldroidFragment;
 import com.thoughtpearl.conveyance.databinding.FragmentAttendanceBinding;
 import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
@@ -83,7 +78,6 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -93,8 +87,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -122,11 +114,40 @@ public class AttendanceFragment extends Fragment {
 
     boolean retryCheckIn = false;
     boolean retryCheckOut = false;
-
+    ActivityResultLauncher<Uri> mCheckInResultLauncher;
+    ActivityResultLauncher<Uri> mCheckOutResultLauncher;
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         mActivity = (Activity) context;
+
+        mCheckInResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                result -> {
+                    Log.d("TRIP", "result" + result.booleanValue()
+                            + "checkInImageFile :" +
+                            checkInImageFile != null ? checkInImageFile.getAbsolutePath() : "null");
+                    if (result.booleanValue()) {
+                        checkInAttendance(null);
+                    } else {
+                        Toast.makeText(requireActivity(),"CheckIn having some issue please try after sometime.", Toast.LENGTH_LONG).show();
+                    }
+                }
+        );
+
+        mCheckOutResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                result -> {
+                    Log.d("TRIP", "result" + result.booleanValue()
+                            + "checkOutImageFile :" +
+                            checkOutImageFile != null ? checkOutImageFile.getAbsolutePath() : "null");
+                    if (result.booleanValue()) {
+                        checkOutAttendance(null);
+                    } else {
+                        Toast.makeText(requireActivity(),"CheckOut having some issue please try after sometime.", Toast.LENGTH_LONG).show();
+                    }
+                }
+        );
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -152,7 +173,7 @@ public class AttendanceFragment extends Fragment {
          binding.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
              @Override
              public void onRefresh() {
-                Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
+                LocationApp.logs("TRIP", "OnRefresh called from SwipeRefreshLayout");
                  if (!TrackerUtility.checkConnection(mActivity)) {
                      Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
                      setSwipeLayoutIsRefreshing(false);
@@ -220,7 +241,7 @@ public class AttendanceFragment extends Fragment {
                             checkInImageFile.createNewFile();
                             checkInImageFile.setExecutable(true, false);
                          } catch (IOException ioException){
-                           Log.d("TRIP", "checkInImage : faild to create file :" + ioException);
+                           LocationApp.logs("TRIP", "checkInImage : faild to create file :" + ioException);
                             //checkInImageFile = new File(String.valueOf(mActivity.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new ContentValues())));
                          }
                     }
@@ -235,9 +256,20 @@ public class AttendanceFragment extends Fragment {
                         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                         cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                         cameraIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    } else {
+                        File directory = new File(getContext().getFilesDir(), "camera_images");
+                        if(!directory.exists()) {
+                            directory.mkdirs();
+                        }
+                        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+                        String imageFileName = "JPEG_" + timeStamp + "_" + System.currentTimeMillis() + ".jpeg";
+                        File file = new File(directory, imageFileName);
+                        photoURI = FileProvider.getUriForFile(requireActivity(), getActivity().getPackageName() + ".fileprovider", file);
                     }
-                    startActivityForResult(cameraIntent, ATTENDANCE_CHECKIN_CAMERA_REQUEST);
+                    //startActivityForResult(cameraIntent, ATTENDANCE_CHECKIN_CAMERA_REQUEST);
                     //startActivity(cameraIntent);
+
+                    mCheckInResultLauncher.launch(photoURI);
 
                     /*ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
                             new ActivityResultContracts.StartActivityForResult(),
@@ -246,20 +278,14 @@ public class AttendanceFragment extends Fragment {
                                 public void onActivityResult(ActivityResult result) {
                                     if(result.getResultCode() == RESULT_OK) // 0 on real device , -1 on Emulator
                                     {
-                                        if(result.getData() != null)
+                                        if(result.getData() != null) {
 
-                                        {
-                                            *//*Log.e("FILE : ", outputFileUri.toString());
-
-                                            Intent intent = new Intent(mActivity,AddNewPlace.class);
-                                            intent.putExtra("File",outputFileUri.toString());
-
-                                            startActivity(intent);*//*
                                         }
                                     }
 
                                 }
-                            });*/
+                            });
+                    startActivityIntent.launch(in);*/
                 } catch (Exception e) {
                     Toast.makeText(mActivity, "Error in creating file : " + e.getMessage(), Toast.LENGTH_LONG).show();
                 }
@@ -559,7 +585,7 @@ public class AttendanceFragment extends Fragment {
                                     }
                                     Toast.makeText(mActivity, "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
                                 } else {
-                                    Log.d("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
+                                    LocationApp.logs("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
                                     Toast.makeText(mActivity, "Attendance marked successfully", Toast.LENGTH_SHORT).show();
                                     SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
                                     SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -598,7 +624,7 @@ public class AttendanceFragment extends Fragment {
                             } else {
                                 LocationApp.logs("username :" + username + " attendance : " + deviceId + "response : Else block attendance.getType()" + attendance.getType());
                                 LocationApp.logs("markAttendance", "username :" + username + " attendance : " + deviceId + "response : Else block");
-                                Log.d("TRIP", "Error :" + response.errorBody());
+                                LocationApp.logs("TRIP", "Error :" + response.errorBody());
                                 String message = "Attendance not marked";
                                 if (attendance.getType() == LocationApp.ON_LEAVE) {
                                     message = "Leave not applied. Please try after sometime.";
@@ -684,7 +710,7 @@ public class AttendanceFragment extends Fragment {
                             }
                             Toast.makeText(mActivity, "Leave Applied Successfully.", Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.d("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
+                            LocationApp.logs("TRIP", "marked attendance type:" + attendance.getType() + " date:" + attendance.getDate() + " Time : " + attendance.getTime());
                             Toast.makeText(mActivity, "Attendance marked successfully", Toast.LENGTH_SHORT).show();
                             SharedPreferences sharedPreferences = mActivity.getSharedPreferences(LocationApp.APP_NAME, Context.MODE_PRIVATE);
                             SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -704,7 +730,7 @@ public class AttendanceFragment extends Fragment {
                     } else {
                         LocationApp.logs("username :" + username +" attendance : " + deviceId + "response : Else block attendance.getType()" + attendance.getType());
                         LocationApp.logs("markAttendance", "username :" + username +" attendance : " + deviceId + "response : Else block");
-                        Log.d("TRIP", "Error :" + response.errorBody());
+                        LocationApp.logs("TRIP", "Error :" + response.errorBody());
                         String message = "Attendance not marked";
                         if (attendance.getType() == LocationApp.ON_LEAVE) {
                             message = "Leave not applied. Please try after sometime.";
@@ -789,97 +815,171 @@ public class AttendanceFragment extends Fragment {
 
         } else*/
         if (requestCode == AttendanceFragment.ATTENDANCE_CHECKIN_CAMERA_REQUEST && resultCode == RESULT_OK) {
-            LocationApp.logs("Attendance : onActivityResult : checkInImageFile Path:" + checkInImageFile);
-            if (checkInImageFile == null) {
-                if (fileUri == null) {
-                    Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
-                    return;
-                } else {
-                    String filePath = getImageFilePath(fileUri);
-                    if (filePath != null) {
-                        checkInImageFile = new File(filePath);
-                    }
-                }
-
-                if (checkInImageFile == null) {
-                    Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-
-            if (checkInImageFile != null && !checkInImageFile.exists() && fileUri != null) {
-                LocationApp.logs("Attendance : check in attendance :" + "CheckIn path : checkInImageFile not exits");
-
-                String filePath = getImageFilePath(fileUri);
-                if (filePath != null) {
-                    File file = new File(filePath);
-                    if (file.exists()) {
-                        LocationApp.logs("Attendance : check in attendance :" + "CheckIn path : fileUri exits" + fileUri);
-                        checkInImageFile = file;
-                    }
-                }
-            }
-
-            Log.d("TRIP", "CheckIn path :" + checkInImageFile != null ? checkInImageFile.getAbsoluteFile().getAbsolutePath() : "null");
-            LocationApp.logs("Attendance : onActivityResult :" + "CheckIn path :" + checkInImageFile != null ? checkInImageFile.getAbsoluteFile().getAbsolutePath() : "null");
-            Attendance attendance = new Attendance();
-            attendance.setType(LocationApp.CLOCK_IN);
-            attendance.setTime(time);
-            attendance.setDate(date);
-            if (location != null) {
-                attendance.setLatitude(String.valueOf(location.getLatitude()));
-                attendance.setLongitude(String.valueOf(location.getLongitude()));
-            }
-            LocationApp.logs("Attendance : before check in attendance :");
-            markAttendance(checkInImageFile.getAbsolutePath(), attendance, null);
-            LocationApp.logs("Attendance : After check in attendance :");
-
+            checkInAttendance(fileUri);
         } else if (requestCode == AttendanceFragment.ATTENDANCE_CHECKOUT_CAMERA_REQUEST && resultCode == RESULT_OK) {
-            if (checkOutImageFile == null) {
-                LocationApp.logs("Attendance : onActivityResult : checkOutImageFile Path: null");
-                if (fileUri == null) {
-                    Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
-                    return;
-                } else {
-                    String filePath = getImageFilePath(fileUri);
-                    if (filePath != null) {
-                        checkOutImageFile = new File(filePath);
-                    }
-                }
+            checkOutAttendance(fileUri);
+        }
+    }
 
-                if (checkOutImageFile == null) {
-                    Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
+    private void checkOutAttendance(Uri fileUri) {
 
-            if (checkOutImageFile != null && !checkOutImageFile.exists() && fileUri != null) {
-                LocationApp.logs("Attendance : check out attendance :" + "Checkout path : checkOutImageFile not exits");
+        LocationApp.logs("Attendance : onActivityResult :");
+        Date myDate = new Date();
+        String date = TrackerUtility.getDateString(myDate);
+        String time = TrackerUtility.getTimeString(myDate);
 
+        LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = locationManager.getBestProvider(criteria, true);
+        LocationApp.logs("Attendance : onActivityResult : provider :" + provider);
+        if (ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location location = null;
+
+        if (provider != null) {
+            location = locationManager.getLastKnownLocation(provider);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
+
+        if (checkOutImageFile == null) {
+            LocationApp.logs("Attendance : onActivityResult : checkOutImageFile Path: null");
+            if (fileUri == null) {
+                Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
+                return;
+            } else {
                 String filePath = getImageFilePath(fileUri);
                 if (filePath != null) {
-                    File file = new File(filePath);
-                    if (file.exists()) {
-                        LocationApp.logs("Attendance : check out attendance :" + "CheckOut path : fileUri exits" + fileUri);
-                        checkOutImageFile = file;
-                    }
+                    checkOutImageFile = new File(filePath);
                 }
             }
 
-            Log.d("TRIP", "Checkout path :" + checkOutImageFile != null ? checkOutImageFile.getAbsoluteFile().getAbsolutePath() : "null");
-            LocationApp.logs("Attendance : check out attendance :" + "Checkout path :" + checkOutImageFile != null ? checkOutImageFile.getAbsoluteFile().getAbsolutePath() : "null");
-            Attendance attendance = new Attendance();
-            attendance.setType(LocationApp.CLOCK_OUT);
-            attendance.setTime(time);
-            attendance.setDate(date);
-            if (location != null) {
-                attendance.setLatitude(String.valueOf(location.getLatitude()));
-                attendance.setLongitude(String.valueOf(location.getLongitude()));
+            if (checkOutImageFile == null) {
+                Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
+                return;
             }
-            LocationApp.logs("Attendance : before check out attendance :");
-            markAttendance(checkOutImageFile.getAbsolutePath(), attendance, null);
-            LocationApp.logs("Attendance : after check out attendance :");
         }
+
+        if (checkOutImageFile != null && !checkOutImageFile.exists() && fileUri != null) {
+            LocationApp.logs("Attendance : check out attendance :" + "Checkout path : checkOutImageFile not exits");
+
+            String filePath = getImageFilePath(fileUri);
+            if (filePath != null) {
+                File file = new File(filePath);
+                if (file.exists()) {
+                    LocationApp.logs("Attendance : check out attendance :" + "CheckOut path : fileUri exits" + fileUri);
+                    checkOutImageFile = file;
+                }
+            }
+        }
+
+        LocationApp.logs("TRIP", "Checkout path :" + checkOutImageFile != null ? checkOutImageFile.getAbsoluteFile().getAbsolutePath() : "null");
+        LocationApp.logs("Attendance : check out attendance :" + "Checkout path :" + checkOutImageFile != null ? checkOutImageFile.getAbsoluteFile().getAbsolutePath() : "null");
+        Attendance attendance = new Attendance();
+        attendance.setType(LocationApp.CLOCK_OUT);
+        attendance.setTime(time);
+        attendance.setDate(date);
+        if (location != null) {
+            attendance.setLatitude(String.valueOf(location.getLatitude()));
+            attendance.setLongitude(String.valueOf(location.getLongitude()));
+        }
+        LocationApp.logs("Attendance : before check out attendance :");
+        markAttendance(checkOutImageFile.getAbsolutePath(), attendance, null);
+        LocationApp.logs("Attendance : after check out attendance :");
+    }
+
+    private void checkInAttendance(Uri fileUri) {
+        LocationApp.logs("Attendance : onActivityResult :");
+        Date myDate = new Date();
+        String date = TrackerUtility.getDateString(myDate);
+        String time = TrackerUtility.getTimeString(myDate);
+
+        LocationManager locationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = locationManager.getBestProvider(criteria, true);
+        LocationApp.logs("Attendance : onActivityResult : provider :" + provider);
+        if (ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location location = null;
+
+        if (provider != null) {
+            location = locationManager.getLastKnownLocation(provider);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        }
+
+        if (location == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
+
+        LocationApp.logs("Attendance : onActivityResult : checkInImageFile Path:" + checkInImageFile);
+        if (checkInImageFile == null) {
+            if (fileUri == null) {
+                Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
+                return;
+            } else {
+                String filePath = getImageFilePath(fileUri);
+                if (filePath != null) {
+                    checkInImageFile = new File(filePath);
+                }
+            }
+
+            if (checkInImageFile == null) {
+                Toast.makeText(mActivity, "There is some issue in storing capture image on device.", Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        if (checkInImageFile != null && !checkInImageFile.exists() && fileUri != null) {
+            LocationApp.logs("Attendance : check in attendance :" + "CheckIn path : checkInImageFile not exits");
+
+            String filePath = getImageFilePath(fileUri);
+            if (filePath != null) {
+                File file = new File(filePath);
+                if (file.exists()) {
+                    LocationApp.logs("Attendance : check in attendance :" + "CheckIn path : fileUri exits" + fileUri);
+                    checkInImageFile = file;
+                }
+            }
+        }
+
+        LocationApp.logs("TRIP", "CheckIn path :" + checkInImageFile != null ? checkInImageFile.getAbsoluteFile().getAbsolutePath() : "null");
+        LocationApp.logs("Attendance : onActivityResult :" + "CheckIn path :" + checkInImageFile != null ? checkInImageFile.getAbsoluteFile().getAbsolutePath() : "null");
+        Attendance attendance = new Attendance();
+        attendance.setType(LocationApp.CLOCK_IN);
+        attendance.setTime(time);
+        attendance.setDate(date);
+        if (location != null) {
+            attendance.setLatitude(String.valueOf(location.getLatitude()));
+            attendance.setLongitude(String.valueOf(location.getLongitude()));
+        }
+        LocationApp.logs("Attendance : before check in attendance :");
+        markAttendance(checkInImageFile.getAbsolutePath(), attendance, null);
+        LocationApp.logs("Attendance : After check in attendance :");
     }
 
     @SuppressLint("Range")
@@ -891,7 +991,7 @@ public class AttendanceFragment extends Fragment {
                     path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA));
                 }
             } catch (IllegalArgumentException e) {
-                Log.d("TRIP", "Get path failed", e);
+                LocationApp.logs(e);
             }
         }
         return path;
@@ -1159,13 +1259,13 @@ public class AttendanceFragment extends Fragment {
         // Create the storage directory if it does not exist
         if (! storageDir.exists()) {
             if (! storageDir.mkdirs()) {
-                Log.d("TRIP", "storageDir : failed to create directory");
+                LocationApp.logs("TRIP", "storageDir : failed to create directory");
                 File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_PICTURES), "RideRecord");
 
                 if (!mediaStorageDir.exists()) {
                     if (! mediaStorageDir.mkdirs()) {
-                        Log.d("TRIP", "mediaStorageDir : failed to create directory");
+                        LocationApp.logs("TRIP", "mediaStorageDir : failed to create directory");
                     }
                 }
                 storageDir = mediaStorageDir;
@@ -1209,7 +1309,7 @@ public class AttendanceFragment extends Fragment {
                    String deviceId = TrackerUtility.getDeviceId(mActivity);
                    getEmployeeProfile(username, deviceId);
                 } else {
-                    Log.d("TRIP", String.valueOf(response));
+                    LocationApp.logs("TRIP", String.valueOf(response));
                     Toast.makeText(mActivity, "Leaves details not retried", Toast.LENGTH_SHORT).show();
                 }
                 //call employeeProfile
@@ -1494,7 +1594,7 @@ public class AttendanceFragment extends Fragment {
                         checkOutImageFile.createNewFile();
                         checkOutImageFile.setExecutable(true, false);
                     } catch (IOException ioException) {
-                        Log.d("TRIP", "checkInImage : faild to create file :" + ioException);
+                        LocationApp.logs("TRIP", "checkInImage : faild to create file :" + ioException);
                         //mActivity.getFileStreamPath("test");
                         //checkOutImageFile = new File(String.valueOf(mActivity.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new ContentValues())));
                     }
@@ -1505,12 +1605,22 @@ public class AttendanceFragment extends Fragment {
                             checkOutImageFile
                     );
                 Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                 if (photoURI != null) {
+                if (photoURI != null) {
                     cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                     cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     cameraIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } else {
+                        File directory = new File(getContext().getFilesDir(), "camera_images");
+                        if(!directory.exists()) {
+                            directory.mkdirs();
+                        }
+                        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+                        String imageFileName = "JPEG_" + timeStamp + "_" + System.currentTimeMillis() + ".jpeg";
+                        File file = new File(directory, imageFileName);
+                        photoURI = FileProvider.getUriForFile(requireActivity(), getActivity().getPackageName() + ".fileprovider", file);
                 }
-                startActivityForResult(cameraIntent, ATTENDANCE_CHECKOUT_CAMERA_REQUEST);
+                //startActivityForResult(cameraIntent, ATTENDANCE_CHECKOUT_CAMERA_REQUEST);
+                mCheckOutResultLauncher.launch(photoURI);
             } catch (Exception e) {
                 Toast.makeText(mActivity, "Error in creating file :" + e.getMessage(), Toast.LENGTH_LONG).show();
             }

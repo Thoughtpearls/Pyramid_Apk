@@ -44,7 +44,7 @@ public class RecordRideSyncJob extends TimerTask {
     @Override
     public void run() {
         // run on another thread
-        Log.d("TRIP", "Timer job is running every one minute : " + TrackerUtility.getTimeString(new Date()));
+        LocationApp.logs("TRIP", "Timer job is running every one minute : " + TrackerUtility.getTimeString(new Date()));
         if (TrackerUtility.checkConnection(this.context)) {
             AppExecutors.getInstance().getMainThread().execute(() -> {
                 // display toast
@@ -58,7 +58,7 @@ public class RecordRideSyncJob extends TimerTask {
                     } else if (unSyncList.get().size() > 0) {
                         isCompleted = false;
                         updateLocationsOnServer(unSyncList.get());
-                        Log.d("TRIP", "UPDATING RECORDS..");
+                        LocationApp.logs("TRIP", "UPDATING RECORDS..");
                         finishTaskCount = 0;
                     } else {
                         if (finishTaskCount++ >= 5 || !isRideRunning) {

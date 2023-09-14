@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,15 +25,24 @@ public final class AlertLayoutBinding implements ViewBinding {
   public final Button cancelAlertButton;
 
   @NonNull
+  public final RadioButton fusedlocation;
+
+  @NonNull
+  public final RadioButton gpslocation;
+
+  @NonNull
   public final Spinner mySpinner;
 
   @NonNull
   public final Button okAlertButton;
 
   private AlertLayoutBinding(@NonNull ConstraintLayout rootView, @NonNull Button cancelAlertButton,
+      @NonNull RadioButton fusedlocation, @NonNull RadioButton gpslocation,
       @NonNull Spinner mySpinner, @NonNull Button okAlertButton) {
     this.rootView = rootView;
     this.cancelAlertButton = cancelAlertButton;
+    this.fusedlocation = fusedlocation;
+    this.gpslocation = gpslocation;
     this.mySpinner = mySpinner;
     this.okAlertButton = okAlertButton;
   }
@@ -70,6 +80,18 @@ public final class AlertLayoutBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.fusedlocation;
+      RadioButton fusedlocation = ViewBindings.findChildViewById(rootView, id);
+      if (fusedlocation == null) {
+        break missingId;
+      }
+
+      id = R.id.gpslocation;
+      RadioButton gpslocation = ViewBindings.findChildViewById(rootView, id);
+      if (gpslocation == null) {
+        break missingId;
+      }
+
       id = R.id.mySpinner;
       Spinner mySpinner = ViewBindings.findChildViewById(rootView, id);
       if (mySpinner == null) {
@@ -82,8 +104,8 @@ public final class AlertLayoutBinding implements ViewBinding {
         break missingId;
       }
 
-      return new AlertLayoutBinding((ConstraintLayout) rootView, cancelAlertButton, mySpinner,
-          okAlertButton);
+      return new AlertLayoutBinding((ConstraintLayout) rootView, cancelAlertButton, fusedlocation,
+          gpslocation, mySpinner, okAlertButton);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

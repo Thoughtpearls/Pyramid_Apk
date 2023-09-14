@@ -98,7 +98,7 @@ public class RideListingFragment extends Fragment {
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
+                LocationApp.logs("TRIP", "OnRefresh called from SwipeRefreshLayout");
                 if (!TrackerUtility.checkConnection(mActivity)) {
                     Toast.makeText(mActivity, "Please check your network connection", Toast.LENGTH_LONG).show();
                     swipeRefreshLayout.setRefreshing(false);
@@ -158,7 +158,7 @@ public class RideListingFragment extends Fragment {
         Dialog finalDailog = dailog;
         AppExecutors.getInstance().getNetworkIO().execute(() -> {
             //tripRecordList = DatabaseClient.getInstance(mActivity).getTripDatabase().tripRecordDao().getAllRides();
-            Log.d("TRIP", "trip count is :" + tripRecordList.size());
+            LocationApp.logs("TRIP", "trip count is :" + tripRecordList.size());
             /*if (tripRecordList != null && tripRecordList.size() > 0) {
                 mActivity.runOnUiThread(() -> {
                     recyclerView.setAdapter(new MyItemRecyclerViewAdapter(tripRecordList, context));

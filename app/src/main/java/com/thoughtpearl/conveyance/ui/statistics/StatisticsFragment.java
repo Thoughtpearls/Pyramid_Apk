@@ -102,7 +102,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
         binding.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                Log.d("TRIP", "OnRefresh called from SwipeRefreshLayout");
+                LocationApp.logs("TRIP", "OnRefresh called from SwipeRefreshLayout");
                 searchRidesByDateRange(searchRideFilter);
             }
         });
@@ -111,7 +111,7 @@ public class StatisticsFragment extends Fragment implements AdapterView.OnItemSe
             today = TrackerUtility.convertStringToDate(getArguments().getString("selectedDate"));
             customStartDate = TrackerUtility.getDateString(today);
             customEndDate = TrackerUtility.getDateString(today);
-            Log.d("TRIP", customStartDate + " - " +customEndDate);
+            LocationApp.logs("TRIP", customStartDate + " - " +customEndDate);
         }
 
         //today = TrackerUtility.convertStringToDate("2022-12-27");

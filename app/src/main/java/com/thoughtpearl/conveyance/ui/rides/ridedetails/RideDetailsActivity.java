@@ -5,10 +5,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -45,6 +47,8 @@ import com.thoughtpearl.conveyance.respository.entity.Location;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
 import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
+import com.thoughtpearl.conveyance.services.MyService;
+import com.thoughtpearl.conveyance.ui.recordride.RecordRideActivity;
 import com.thoughtpearl.conveyance.ui.statistics.StatisticsFragment;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
@@ -156,6 +160,8 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                        /*if (isListEmptyOrNull(rideDetailsResponse.getRideLocationDTOList())) {
                            completeRideButton.setVisibility(View.GONE);
                        } else {*/
+
+                     Log.d("TRIP", "distance in Meter" + TrackerUtility.calculateDistanceInMeter(rideDetailsResponse.getRideLocationDTOList()));
                        if (isInCompleteRide) {
                            completeRideButton.setVisibility(View.VISIBLE);
                        } else {
@@ -350,7 +356,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                     unSyncList.set(unSyncLocations);
                     if (unSyncList.get().size() > 0) {
                         updateLocationsOnServer(unSyncList.get(), imagePath, dialog);
-                        Log.d("TRIP", "UPDATING RECORDS..");
+                        LocationApp.logs("TRIP", "UPDATING RECORDS..");
                     }
                 });
             } else {
@@ -365,7 +371,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
         if (rideDetailsResponse != null) {
 
             File file = new File(imagePath);
-            Log.d("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
+            LocationApp.logs("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
             double totalDistance = 0;
             double distanceInKm = 0;
             String sDate = rideDetailsResponse.getRideDate();
@@ -413,7 +419,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
 
                 @Override
                 public void onResponse(Call<Void> call, Response<Void> response) {
-                    Log.d("TRIP", "Ride completed :");
+                    LocationApp.logs("TRIP", "Ride completed :");
                     if (response.code() == 200 || response.code() == 201) {
                         //tripRecord.setStatus(true);
                         StatisticsFragment.isRideListRefreshRequired = isFromStatisticScreen;
@@ -422,6 +428,23 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                         });
                         isInCompleteRide = false;
                         completeRideButton.setVisibility(View.GONE);
+
+                        if (MyService.isTrackingOn !=null && MyService.isTrackingOn.getValue()) {
+                           if  (MyService.runningTripRecord != null) {
+                                TripRecord tripRecord1 = MyService.runningTripRecord.getValue();
+                                if (rideId.equals(tripRecord1.getTripId())) {
+                                        MyService.isTrackingOn.setValue(false);
+                                        tripRecord1.setStatus(true);
+                                        MyService.runningTripRecord.setValue(tripRecord1);
+                                        Intent intent = new Intent(RideDetailsActivity.this, MyService.class);
+                                        intent.setAction(MyService.STOP_SERVICE);
+                                        intent.putExtra("screenshot_path", imagePath);
+                                        startService(intent);
+                                        NotificationManagerCompat.from(RideDetailsActivity.this).cancel(LocationApp.NOTIFICATION_ID);
+                                }
+                           }
+                        }
+
                         Toast.makeText(getApplicationContext(), "Ride Updated Successfully", Toast.LENGTH_LONG).show();
                         fetchRideDetails();
                     } else {
@@ -437,7 +460,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
 
                 @Override
                 public void onFailure(Call<Void> call, Throwable t) {
-                    Log.d("TRIP", "Ride not completed :" + t);
+                    LocationApp.logs("TRIP", "Ride not completed :" + t);
                     Toast.makeText(RideDetailsActivity.this, "D" +
                             "Something went wrong while updating ride. Please try after some time", Toast.LENGTH_LONG).show();
                     AppExecutors.getInstance().getMainThread().execute(()->{

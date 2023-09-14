@@ -55,7 +55,7 @@ public class RideUpdateWorker /*extends Worker */{
                 tripRecord.setStatus(false);
                 DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().updateRecord(tripRecord);
                 File file = new File(imagePath);
-                Log.d("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
+                LocationApp.logs("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
 
                 RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
                 RequestBody id = RequestBody.create(MediaType.parse("text/plain"), rideId);
@@ -79,7 +79,7 @@ public class RideUpdateWorker /*extends Worker */{
 
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {
-                        Log.d("TRIP", "Ride completed :");
+                        LocationApp.logs("TRIP", "Ride completed :");
                         if (response.code() == 200 || response.code() == 201) {
                             tripRecord.setStatus(true);
                             AppExecutors.getInstance().getDiskIO().execute(() -> {
@@ -90,7 +90,7 @@ public class RideUpdateWorker /*extends Worker */{
 
                     @Override
                     public void onFailure(Call<Void> call, Throwable t) {
-                        Log.d("TRIP", "Ride not completed :" + t);
+                        LocationApp.logs("TRIP", "Ride not completed :" + t);
                     }
                 });
             }

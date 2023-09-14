@@ -51,7 +51,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         public void run() {
             SharedPreferences sharedPreferences = getSharedPreferences(LocationApp.APP_NAME, MODE_PRIVATE);
             String username = sharedPreferences.getString("username","");
-            Log.d("TRIP", "username :" + username);
+            LocationApp.logs("TRIP", "username :" + username);
             if (username.trim().length() == 0) {
                 Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
                 startActivity(intent);

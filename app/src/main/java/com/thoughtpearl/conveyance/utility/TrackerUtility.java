@@ -92,7 +92,7 @@ public class TrackerUtility {
         }
     }
 
-    /**
+   /**
      * Convert a millisecond duration to a string format
      *
      * @param millis A duration to convert to a string form
@@ -132,14 +132,14 @@ public class TrackerUtility {
         if (LocationApp.DEVICE_ID == null) {
             String android_id = Settings.Secure.getString(context.getContentResolver(),
                     Settings.Secure.ANDROID_ID);
-            Log.d("TRIP", "Before Android ID : " + android_id);
+            LocationApp.logs("TRIP", "Before Android ID : " + android_id);
             //android_id = "16fb058fe8efb57d";
             //android_id = "89ABCDEF-01234567-89ABCDEF";
             android_id = "555113d4af5795a2";
             //android_id = "08753888962421ba";
             //android_id = "8bbc400b0285eaad";
             //android_id = "927f80c1e257cf9f";
-            Log.d("TRIP", "After Android ID : " + android_id);
+            LocationApp.logs("TRIP", "After Android ID : " + android_id);
             LocationApp.DEVICE_ID = android_id;
             return android_id;
         } else {
@@ -313,13 +313,13 @@ public class TrackerUtility {
             formatter.setRoundingMode(RoundingMode.HALF_UP);
             return formatter.format(totalDistance);
         } catch (Exception e) {
-            Log.d("TRIP", "error :" + e.getMessage());
+            LocationApp.logs("TRIP", "error :" + e.getMessage());
         }
         return "0";
     }
 
     public static Double roundOffDouble(Double totalDistance) {
-        return Double.valueOf(roundOffDoubleToString(totalDistance));
+        return Double.valueOf(roundOffDoubleToString(totalDistance).replaceAll("[^0-9.]+",""));
     }
 
     public static Double calculateDistanceInMeter(List<LocationRequest> locationRequestList) {
@@ -327,6 +327,22 @@ public class TrackerUtility {
         if (locationRequestList == null || locationRequestList.size() == 0) {
             return distance;
         }
+
+        if (locationRequestList.size() == 2) {
+            LocationRequest pos1 = locationRequestList.get(0);
+            LocationRequest pos2 = locationRequestList.get(1);
+            //distance += calculateDistance(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), "M");
+            float[] result = new float[1];
+            Location.distanceBetween(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), result);
+            long l = convertStringToDate(pos2.getTimeStamp(), "HH:mm:ss").getTime() - convertStringToDate(pos1.getTimeStamp(), "HH:mm:ss").getTime();
+            LocationApp.logs("TRIP", "location1(" + pos1.getLatitude() + "," + pos1.getLongitude() + ") and location2(" + pos2.getLatitude() + "," + pos2.getLongitude() + ") between : 0 and  1" +  " is -> " + result[0] + " loc1 time" + pos1.getTimeStamp() + "loc2 time:" + pos2.getTimeStamp() +" diff is (seconds) :" + TimeUnit.MILLISECONDS.toSeconds(l));
+            if (result[0] > 2000 && TimeUnit.MILLISECONDS.toMinutes(l) < 2) {
+                LocationApp.logs("TRIP", "Rejected records :  i -> 0  i+1-> 1");
+            } else {
+                distance += result[0];
+            }
+        }
+
         for(int i = 0; i < locationRequestList.size() - 2; i++) {
             LocationRequest pos1 = locationRequestList.get(i);
             LocationRequest pos2 = locationRequestList.get(i + 1);
@@ -334,9 +350,9 @@ public class TrackerUtility {
             float[] result = new float[1];
             Location.distanceBetween(pos1.getLatitude(), pos1.getLongitude(), pos2.getLatitude(), pos2.getLongitude(), result);
             long l = convertStringToDate(pos2.getTimeStamp(), "HH:mm:ss").getTime() - convertStringToDate(pos1.getTimeStamp(), "HH:mm:ss").getTime();
-            Log.d("TRIP", "location1(" + pos1.getLatitude() + "," + pos1.getLongitude() + ") and location2(" + pos2.getLatitude() + "," + pos2.getLongitude() + ") between :" + i + " and " + (i + 1) + " is -> " + result[0] + " loc1 time" + pos1.getTimeStamp() + "loc2 time:" + pos2.getTimeStamp() +" diff is (seconds) :" + TimeUnit.MILLISECONDS.toSeconds(l));
-            if (distance > 2000 && TimeUnit.MILLISECONDS.toSeconds(l) < 30) {
-                Log.d("TRIP", "Rejected records :  i -> " + i + " i+1-> " + (i+1));
+            LocationApp.logs("TRIP", "location1(" + pos1.getLatitude() + "," + pos1.getLongitude() + ") and location2(" + pos2.getLatitude() + "," + pos2.getLongitude() + ") between :" + i + " and " + (i + 1) + " is -> " + result[0] + " loc1 time" + pos1.getTimeStamp() + "loc2 time:" + pos2.getTimeStamp() +" diff is (seconds) :" + TimeUnit.MILLISECONDS.toSeconds(l));
+            if (result[0] > 2000 && TimeUnit.MILLISECONDS.toMinutes(l) < 2) {
+                LocationApp.logs("TRIP", "Rejected records :  i -> " + i + " i+1-> " + (i+1));
             } else {
                 distance += result[0];
             }
@@ -555,7 +571,7 @@ public class TrackerUtility {
      * @param bitmap
      * @return converting bitmap and return a string
      */
-    public static String BitMapToString(Bitmap bitmap){
+    public static String BitMapToString(Bitmap bitmap) {
         ByteArrayOutputStream baos=new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG,100, baos);
         byte [] b=baos.toByteArray();
