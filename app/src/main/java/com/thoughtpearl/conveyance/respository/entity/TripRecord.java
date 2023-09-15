@@ -5,14 +5,12 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-import java.util.UUID;
-
 @Entity
 public class TripRecord {
     @PrimaryKey
     @ColumnInfo(name = "id")
     @NonNull
-    public UUID tripId;
+    public Long tripId;
 
     @ColumnInfo(name = "start_time")
     public long startTimestamp;
@@ -70,11 +68,11 @@ public class TripRecord {
         this.deviceId = deviceId;
     }
 
-    public UUID getTripId() {
+    public Long getTripId() {
         return tripId;
     }
 
-    public void setTripId(UUID tripId) {
+    public void setTripId(Long tripId) {
         this.tripId = tripId;
     }
 

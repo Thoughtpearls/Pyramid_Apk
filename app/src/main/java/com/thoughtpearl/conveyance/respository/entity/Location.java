@@ -17,17 +17,17 @@ public class Location {
     @PrimaryKey
     @ColumnInfo(name = "locationId")
     @NonNull
-    public UUID locationId;
+    public Long locationId;
     public Double latitude = 0.0;
     public Double longitude = 0.0;
     public boolean serverSync = false;
     public String timestamp;
-    public UUID tripId;
+    public Long tripId;
 
     public Location() {
     }
 
-    public Location(UUID locationId, Double latitude, Double longitude, boolean sync, UUID tripId, String timestamp) {
+    public Location(Long locationId, Double latitude, Double longitude, boolean sync, Long tripId, String timestamp) {
         this.locationId = locationId;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -60,11 +60,11 @@ public class Location {
         this.serverSync = serverSync;
     }
 
-    public UUID getLocationId() {
+    public Long getLocationId() {
         return locationId;
     }
 
-    public void setLocationId(UUID locationId) {
+    public void setLocationId(Long locationId) {
         this.locationId = locationId;
     }
 
@@ -76,11 +76,11 @@ public class Location {
         this.timestamp = timestamp;
     }
 
-    public UUID getTripId() {
+    public Long getTripId() {
         return tripId;
     }
 
-    public void setTripId(UUID tripId) {
+    public void setTripId(Long tripId) {
         this.tripId = tripId;
     }
 }

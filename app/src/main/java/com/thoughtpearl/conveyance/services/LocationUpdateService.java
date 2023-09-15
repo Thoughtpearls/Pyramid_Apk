@@ -32,6 +32,7 @@ import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.respository.database.TripDatabase;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -69,7 +70,8 @@ public class LocationUpdateService extends Service {
             LocationApp.logs("Locations", currentLocation.getLatitude() + "," + currentLocation.getLongitude());
             //Share/Publish Location
             TripRecord tripRecord = new TripRecord();
-            tripRecord.tripId = UUID.randomUUID();
+            Random random = new Random();
+            tripRecord.tripId = random.nextLong();
             tripRecord.startTimestamp = System.currentTimeMillis();
             //tripRecord.latlong = currentLocation.getLatitude() + "," + currentLocation.getLongitude();
             db.tripRecordDao().insertAll(tripRecord);

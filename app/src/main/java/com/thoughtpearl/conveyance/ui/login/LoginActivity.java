@@ -36,6 +36,8 @@ public class LoginActivity extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
@@ -126,7 +128,7 @@ public class LoginActivity extends AppCompatActivity {
             if (!TrackerUtility.checkConnection(getApplicationContext())) {
                 Toast.makeText(getApplicationContext(), "Please check your network connection", Toast.LENGTH_LONG).show();
             } else {
-                loadingProgressBar.setVisibility(View.VISIBLE);
+                    loadingProgressBar.setVisibility(View.VISIBLE);
                 loginViewModel.login(usernameEditText.getText().toString(),
                         passwordEditText.getText().toString(),
                         TrackerUtility.getDeviceId(getApplicationContext()));

@@ -408,7 +408,6 @@ public class BottomNavigationActivity extends AppCompatActivity {
                                         new Handler().postDelayed(()-> {
                                             Toast.makeText(BottomNavigationActivity.this, "Profile Updated Successfully.", Toast.LENGTH_LONG).show();
                                         }, 2000);
-
                                     } else {
                                         LocationApp.logs("profileUpload", "response code :" + response.code());
                                         LocationApp.logs("profile upload failed due to response code :" + response.code());
@@ -430,7 +429,7 @@ public class BottomNavigationActivity extends AppCompatActivity {
                         });
 
                     }
-                   //profileImageView.setImageURI(selectedImage);
+//                   profileImageView.setImageURI(selectedImage);
                 }
 
                 break;

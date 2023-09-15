@@ -6,7 +6,7 @@ import android.os.Parcelable;
 import java.io.Serializable;
 
 public class Ride implements Parcelable {
-        private String id;
+        private Long id;
         private String rideDate;
         private String rideStartTime;
         private String rideEndTime;
@@ -19,7 +19,7 @@ public class Ride implements Parcelable {
         private Double reimbursementCost;
 
         public Ride() {}
-        public Ride(String id, String rideDate, String rideStartTime, String rideEndTime, Double rideCost, Double rideDistance, String reason, Double sanctionDistance, String employeeRide, boolean deleted, Double reimbursementCost) {
+        public Ride(Long id, String rideDate, String rideStartTime, String rideEndTime, Double rideCost, Double rideDistance, String reason, Double sanctionDistance, String employeeRide, boolean deleted, Double reimbursementCost) {
                 this.id = id;
                 this.rideDate = rideDate;
                 this.rideStartTime = rideStartTime;
@@ -33,11 +33,11 @@ public class Ride implements Parcelable {
                 this.reimbursementCost = reimbursementCost;
         }
 
-        public String getId() {
+        public Long getId() {
                 return id;
         }
 
-        public void setId(String id) {
+        public void setId(Long id) {
                 this.id = id;
         }
 
@@ -126,7 +126,7 @@ public class Ride implements Parcelable {
                 String[] data = new String[11];
                 in.readStringArray(data);
                 // the order needs to be the same as in writeToParcel() method
-                this.id =  data[0];
+                this.id =  Long.parseLong(data[0]);
                 this.rideDate = data[1];
                 this.rideStartTime = data[2];
                 this.rideEndTime = data[3];
@@ -146,7 +146,7 @@ public class Ride implements Parcelable {
 
         @Override
         public void writeToParcel(Parcel parcel, int i) {
-                parcel.writeStringArray(new String[] {this.id,
+                parcel.writeStringArray(new String[] {this.id.toString(),
                         this.rideDate,
                         this.rideStartTime,
                         this.rideEndTime,

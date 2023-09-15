@@ -85,6 +85,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -113,7 +114,7 @@ public class MyService extends LifecycleService implements LocationListener {
     private LocationCallback locationCallback;
     private LocationRequest mLocationRequest;
     private NotificationCompat.Builder builder;
-    private static UUID tripId;
+    private static Long tripId;
     private static Ride ride;
     private DatabaseClient databaseClient;
     private Location mLastLocation;
@@ -345,7 +346,7 @@ public class MyService extends LifecycleService implements LocationListener {
 
         if (tripRecord.get() == null) {
             AppExecutors.getInstance().getDiskIO().execute(() -> {
-                TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(ride.getId()));
+                TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(ride.getId());
                 tripRecord.set(relation.getTripRecord());
                 AppExecutors.getInstance().getMainThread().execute(() -> runningTripRecord.setValue(relation.getTripRecord()));
             });
@@ -366,7 +367,7 @@ public class MyService extends LifecycleService implements LocationListener {
             tripRecord.get().setTotalDistance(totalDistance.getValue().floatValue());
             TripRecord finalTripRecord1 = tripRecord.get();
             AppExecutors.getInstance().getDiskIO().execute(() -> {
-                TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(ride.getId()));
+                TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(ride.getId());
                 if (relation == null || relation.tripRecord == null) {
                     long insertRowId = databaseClient.getTripDatabase().tripRecordDao().save(finalTripRecord1);
                 }
@@ -375,7 +376,7 @@ public class MyService extends LifecycleService implements LocationListener {
                 runningTripRecord.postValue(finalTripRecord1);
 
                 String timeStamp = TrackerUtility.getTimeString(new Date());
-                com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(UUID.randomUUID(), location.getLatitude(), location.getLongitude(), false, tripId, timeStamp);
+                com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(new Random().nextLong(), location.getLatitude(), location.getLongitude(), false, tripId, timeStamp);
                 locationList.add(locationTemp);
                 AppExecutors.getInstance().getMainThread().execute(() -> {
                     locationListData.postValue(locationList);
@@ -422,13 +423,13 @@ public class MyService extends LifecycleService implements LocationListener {
             if (tripId == null) {
                 tripId = runningTripRecord.getValue().getTripId();
             }
-            com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(UUID.randomUUID(), location.getLatitude(), location.getLongitude(), false, tripId, timeStamp);
+            com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(new Random().nextLong(), location.getLatitude(), location.getLongitude(), false, tripId, timeStamp);
             locationList.add(locationTemp);
             locationListData.postValue(locationList);
             AppExecutors.getInstance().getDiskIO().execute(() -> {
                 try {
 
-                    TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(ride.getId()));
+                    TripRecordLocationRelation relation = DatabaseClient.getInstance(context).getTripDatabase().tripRecordDao().getByTripId(ride.getId());
                     if (relation == null || relation.tripRecord == null) {
                        databaseClient.getTripDatabase().tripRecordDao().save(tripRecord.get());
                     }
@@ -447,7 +448,7 @@ public class MyService extends LifecycleService implements LocationListener {
                             public void onResponse(Call<List<String>> call, Response<List<String>> response) {
                                 if (response.code() == 201) {
                                     response.body().forEach(uuid -> {
-                                        com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(UUID.fromString(uuid), location.getLatitude(), location.getLongitude(), true, tripId, request.getTimeStamp());
+                                        com.thoughtpearl.conveyance.respository.entity.Location locationTemp = new com.thoughtpearl.conveyance.respository.entity.Location(Long.parseLong(uuid), location.getLatitude(), location.getLongitude(), true, tripId, request.getTimeStamp());
                                         AppExecutors.getInstance().getDiskIO().execute(()-> {
                                             databaseClient.getTripDatabase().tripRecordDao().save(locationTemp);
                                         });
@@ -520,10 +521,12 @@ public class MyService extends LifecycleService implements LocationListener {
                     Bundle bundle = intent.getExtras();
                     ride = bundle.getParcelable("ride");
                     useGPSLocationForApp = bundle.getBoolean("isUseGps", true);
-                    tripId = UUID.fromString(ride.getId());
+
+                    tripId = ride.getId();
+
                     AppExecutors.getInstance().getDiskIO().execute(() -> {
                         TripRecord tripRecord = new TripRecord();
-                        tripRecord.setTripId(UUID.fromString(ride.getId()));
+                        tripRecord.setTripId(ride.getId());
                         long startTime;
                         try {
                             startTime = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(ride.getRideDate() + " " + ride.getRideStartTime()).getTime();
@@ -645,7 +648,6 @@ public class MyService extends LifecycleService implements LocationListener {
     }
 
     private void updateRide(String imagePath) {
-        LocationApp.logs("updateRide imagePath : " + imagePath);
         AppExecutors.getInstance().getDiskIO().execute(() -> {
             TripRecord tripRecord = runningTripRecord.getValue();
             if (tripRecord != null) {
@@ -660,7 +662,7 @@ public class MyService extends LifecycleService implements LocationListener {
                     totalDistanceValue = totalDistance.getValue();
                 }
                 if (totalDistanceValue == 0) {
-                    TripRecordLocationRelation relation = DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(ride.getId()));
+                    TripRecordLocationRelation relation = DatabaseClient.getInstance(getApplicationContext()).getTripDatabase().tripRecordDao().getByTripId(ride.getId());
                     totalDistanceValue = TrackerUtility.calculateDistanceInKilometer(relation.getLocations());
                 }
                 ride.setRideDistance(totalDistanceValue);
@@ -668,7 +670,7 @@ public class MyService extends LifecycleService implements LocationListener {
                 LocationApp.logs("TRIP", "image path :" + imagePath + "file exists :" + file.exists());
 
                 RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
-                RequestBody id = RequestBody.create(MediaType.parse("text/plain"), ride.getId());
+                RequestBody id = RequestBody.create(MediaType.parse("text/plain"), ride.getId().toString());
                 RequestBody ridePurpose = RequestBody.create(MediaType.parse("text/plain"), ride.getRidePurpose());
                 RequestBody rideStartTime = RequestBody.create(MediaType.parse("text/plain"), ride.getRideStartTime());
                 RequestBody rideEndTime = RequestBody.create(MediaType.parse("text/plain"), ride.getRideEndTime());
@@ -888,7 +890,6 @@ public class MyService extends LifecycleService implements LocationListener {
         updateLocationsOnServer(unSyncedLocations, 0);
     }
     public void updateLocationsOnServer(List<com.thoughtpearl.conveyance.respository.entity.Location> unSyncedLocations, int retryAttemptCount) {
-         LocationApp.logs("update locations : " + (unSyncedLocations != null ? unSyncedLocations.size() : 0));
         if (!TrackerUtility.checkConnection(getApplicationContext())) {
             showToastMessage("Please check your network connection");
         } else {

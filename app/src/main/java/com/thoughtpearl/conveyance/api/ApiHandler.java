@@ -39,7 +39,7 @@ public class ApiHandler {
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://43.204.194.87:8091/")
+                .baseUrl("http://13.234.255.67:8091/")
                 // as we are sending data in json format so
                 // we have to add Gson converter factory
                 .addConverterFactory(GsonConverterFactory.create(gson))

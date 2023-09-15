@@ -92,7 +92,7 @@ public interface ApiInterface {
     @GET("/api/rides/rideDetails")     // API's endpoints
     public Call<RideDetailsResponse> getRideDetails(@Header("userName") String userName,
                                                     @Header("deviceId") String deviceId,
-                                                    @Header("rideId") String rideId);
+                                                    @Header("rideId") Long rideId);
 
 
     @Headers({"Accept: application/json"})
@@ -110,7 +110,7 @@ public interface ApiInterface {
     @PUT("/api/rides/update/{rideId}")     // API's endpoints
     Call<Void> updateRide( @Header("userName") String userName,
                            @Header("deviceId") String deviceId,
-                           @Path(value = "rideId") String rideId,
+                           @Path(value = "rideId") Long rideId,
                            @PartMap Map<String, RequestBody> map);
 
     @POST("/api/rides/rideStatistics")

@@ -78,7 +78,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
     private GoogleMap mMap;
     private MapView mapView;
     private RideDetailsResponse rideDetailsResponse;
-    private String rideId;
+    private Long rideId;
     private Boolean isInCompleteRide;
     private Boolean isFromStatisticScreen;
     private static final int REQUEST_CODE = 11;
@@ -88,11 +88,11 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ride_details);
 
-        if (!checkPermissions()) {
-            requestPermissions();
-        }
+//        if (!checkPermissions()) {
+//            requestPermissions();
+//        }
 
-        rideId = getIntent().getExtras().getString("rideId", "");
+        rideId = getIntent().getExtras().getLong("rideId");
         isInCompleteRide = getIntent().getExtras().getBoolean("isInCompleteRide", false);
         isFromStatisticScreen = getIntent().getExtras().getBoolean("isFromStatisticScreen", false);
         rideAmountTextView = findViewById(R.id.rideAmount);
@@ -303,11 +303,11 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
             mapView.onResume();
         }
 
-        if (!checkPermissions()) {
-            requestPermissions();
-        } else {
-            //fetchRideDetails();
-        }
+//        if (!checkPermissions()) {
+//            requestPermissions();
+//        } else {
+//            //fetchRideDetails();
+//        }
     }
 
     @Override
@@ -367,7 +367,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
 
     private void updateRide(String imagePath, Dialog dialog, double updatedDistanceInKm, String  updateTime) {
         TripRecord tripRecord = new TripRecord();
-        tripRecord.setTripId(UUID.fromString(rideId));
+        tripRecord.setTripId(rideId);
         if (rideDetailsResponse != null) {
 
             File file = new File(imagePath);
@@ -398,7 +398,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
             tripRecord.setStatus(true);
 
             RequestBody fileBody = RequestBody.create(MediaType.parse("image/jpeg"), file);
-            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), rideId);
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(rideId));
             //RequestBody ridePurpose = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getPurpose());
             RequestBody rideStartTime = RequestBody.create(MediaType.parse("text/plain"), rideDetailsResponse.getRideTime());
             RequestBody rideEndTime = RequestBody.create(MediaType.parse("text/plain"), endTime);
@@ -480,119 +480,119 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
     /**
      * Return the current state of the permissions needed.
      */
-    private boolean checkPermissions() {
-        int permissionState = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA);
-        int permissionStateWriteFile = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        int permissionStateReadImageFile = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.READ_MEDIA_IMAGES);
-        int permissionStateReadExternalStorageFile = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.READ_EXTERNAL_STORAGE);
-        int permissionStateFineLocation = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION);
-        int permissionStateCourseLocation = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_COARSE_LOCATION);
+//    private boolean checkPermissions() {
+//        int permissionState = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.CAMERA);
+//        int permissionStateWriteFile = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+//        int permissionStateReadImageFile = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.READ_MEDIA_IMAGES);
+//        int permissionStateReadExternalStorageFile = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.READ_EXTERNAL_STORAGE);
+//        int permissionStateFineLocation = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.ACCESS_FINE_LOCATION);
+//        int permissionStateCourseLocation = ActivityCompat.checkSelfPermission(this,
+//                Manifest.permission.ACCESS_COARSE_LOCATION);
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateReadImageFile == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+//
+//        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+//            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateWriteFile == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+//        } else {
+//            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
+//                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+//        }
+//    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateReadImageFile == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
+//    private void requestPermissions() {
+//        boolean shouldProvideRationale = false;
+//        if(!isFinishing()) {
+//            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                shouldProvideRationale =
+//                        ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.READ_MEDIA_IMAGES)  && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.READ_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_COARSE_LOCATION);
+//            } else if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+//                shouldProvideRationale =
+//                        ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.WRITE_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_COARSE_LOCATION);
+//            } else {
+//                shouldProvideRationale =
+//                        ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
+//                                Manifest.permission.ACCESS_COARSE_LOCATION);
+//            }
+//
+//            if (shouldProvideRationale) {
+//                Log.i("TRIP", "Displaying permission rationale to provide additional context.");
+//
+//                String[] permissions;
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                    permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE,  Manifest.permission.READ_MEDIA_IMAGES};
+//                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE};
+//                } else {
+//                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+//                }
+//                ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
+//            } else {
+//                Log.i("TRIP", "Requesting permission");
+//                String[] permissions;
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                    permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE,  Manifest.permission.READ_MEDIA_IMAGES};
+//                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE};
+//                } else {
+//                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+//                }
+//                ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
+//            }
+//        }
+//    }
 
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateWriteFile == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
-        } else {
-            return ((permissionState == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateFineLocation == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateReadExternalStorageFile == PackageManager.PERMISSION_GRANTED) &&
-                    (permissionStateCourseLocation == PackageManager.PERMISSION_GRANTED));
-        }
-    }
-
-    private void requestPermissions() {
-        boolean shouldProvideRationale = false;
-        if(!isFinishing()) {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                shouldProvideRationale =
-                        ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.READ_MEDIA_IMAGES)  && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.READ_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_COARSE_LOCATION);
-            } else if (android.os.Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-                shouldProvideRationale =
-                        ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_COARSE_LOCATION);
-            } else {
-                shouldProvideRationale =
-                        ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.CAMERA) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_FINE_LOCATION) && ActivityCompat.shouldShowRequestPermissionRationale(this,
-                                Manifest.permission.ACCESS_COARSE_LOCATION);
-            }
-
-            if (shouldProvideRationale) {
-                Log.i("TRIP", "Displaying permission rationale to provide additional context.");
-
-                String[] permissions;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE,  Manifest.permission.READ_MEDIA_IMAGES};
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE};
-                } else {
-                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
-                }
-                ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
-            } else {
-                Log.i("TRIP", "Requesting permission");
-                String[] permissions;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    permissions = new String[]{Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE,  Manifest.permission.READ_MEDIA_IMAGES};
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE};
-                } else {
-                    permissions = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
-                }
-                ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE);
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        Log.i("TRIP", "onRequestPermissionResult");
-        if (requestCode == REQUEST_CODE) {
-            if (grantResults.length <= 0) {
-                Log.i("TRIP", "User interaction was cancelled.");
-            } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                fetchRideDetails();
-            } else {
-                showSnackbar(R.string.permission_denied_explanation,
-                        R.string.settings, view -> {
-                            // Build intent that displays the App settings screen.
-                            Intent intent = new Intent();
-                            intent.setAction(
-                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            Uri uri = Uri.fromParts("package",
-                                    "com.thoughtpearl.conveyance", null);
-                            intent.setData(uri);
-                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            startActivity(intent);
-                        });
-            }
-        }
-    }
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//        Log.i("TRIP", "onRequestPermissionResult");
+//        if (requestCode == REQUEST_CODE) {
+//            if (grantResults.length <= 0) {
+//                Log.i("TRIP", "User interaction was cancelled.");
+//            } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+////                fetchRideDetails();
+//            } else {
+//                showSnackbar(R.string.permission_denied_explanation,
+//                        R.string.settings, view -> {
+//                            // Build intent that displays the App settings screen.
+//                            Intent intent = new Intent();
+//                            intent.setAction(
+//                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+//                            Uri uri = Uri.fromParts("package",
+//                                    "com.thoughtpearl.conveyance", null);
+//                            intent.setData(uri);
+//                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                            startActivity(intent);
+//                        });
+//            }
+//        }
+//    }
 
     /**
      * Shows a {@link Snackbar}.
@@ -636,7 +636,7 @@ public class RideDetailsActivity extends AppCompatActivity implements OnMapReady
                             double totalDistance = 0d;
                             String updatedTime = "";
                             if (unSyncedLocations.size() > 0) {
-                                TripRecordLocationRelation recordLocationRelation = DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(rideId));
+                                TripRecordLocationRelation recordLocationRelation = DatabaseClient.getInstance(RideDetailsActivity.this).getTripDatabase().tripRecordDao().getByTripId(rideId);
                                 if (recordLocationRelation.getLocations() != null && recordLocationRelation.getLocations().size() > 0 ) {
                                     totalDistance = TrackerUtility.calculateDistanceInKilometer(recordLocationRelation.getLocations());
                                 }

@@ -13,7 +13,6 @@ import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
 
 import java.util.List;
-import java.util.UUID;
 
 @Dao
 public interface  TripRecordDao {
@@ -26,26 +25,26 @@ public interface  TripRecordDao {
     List<TripRecordLocationRelation> getAllRides();
 
     @Query("SELECT distinct(id) FROM TripRecord")
-    UUID[] getTotalTrips();
+    Long[] getTotalTrips();
 
     @Query("SELECT * FROM TripRecord WHERE id IN (:tripIds)")
-    List<TripRecord> getTripByIds(UUID[] tripIds);
+    List<TripRecord> getTripByIds(Long[] tripIds);
 
     @Query("SELECT * FROM TripRecord WHERE id IN (:tripId)")
-    TripRecord getTripById(UUID tripId);
+    TripRecord getTripById(Long tripId);
 
     @Query("SELECT * FROM TripRecord order by start_time desc limit 1")
     TripRecord getRunningTrip();
 
     @Query("Select id From TripRecord order by start_time desc limit 1")
-    UUID getLastTripId();
+    Long getLastTripId();
 
     @Transaction
     @Query("SELECT * FROM TripRecord WHERE id = :tripId")
-    TripRecordLocationRelation getByTripId(UUID tripId);
+    TripRecordLocationRelation getByTripId(Long tripId);
 
     @Query("Update TripRecord Set end_time =:endTime Where id =:id")
-    int updateRecord(UUID id, long endTime);
+    int updateRecord(Long id, long endTime);
 
     @Update
     int updateRecord(TripRecord tripRecord);
@@ -60,7 +59,7 @@ public interface  TripRecordDao {
     void update(Location location);
 
     @Query("UPDATE location SET serversync=:syncServer WHERE locationid LIKE :locationId")
-    void updateLocationById(int syncServer, UUID locationId);
+    void updateLocationById(int syncServer, Long locationId);
 
     @Insert
     Long save(TripRecord tripRecord);
@@ -68,7 +67,7 @@ public interface  TripRecordDao {
     //SELECT id FROM table_name WHERE rowid = :rowId
 
     @Query("Select id From TripRecord WHERE rowid =:rowId")
-    UUID getLastInsertedTripId(Long rowId);
+    Long getLastInsertedTripId(Long rowId);
 
     @Insert
     void insertAll(Location... locations);
@@ -77,7 +76,7 @@ public interface  TripRecordDao {
     void delete(TripRecord trip);
 
     @Query("Delete From TripRecord where id =:tripId")
-    void deleteById(UUID tripId);
+    void deleteById(Long tripId);
 
     @Query("Delete From TripRecord")
     void deleteAllTrips();
@@ -86,7 +85,7 @@ public interface  TripRecordDao {
     void deleteAllLocation();
 
     @Query("SELECT * FROM location WHERE tripId IN (:tripId) AND serverSync=0")
-    List<Location> getUnSyncServerLocations(String tripId);
+    List<Location> getUnSyncServerLocations(Long tripId);
 
     @Query("SELECT * FROM location WHERE serverSync=0")
     List<Location> getUnSyncServerLocations();

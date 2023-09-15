@@ -261,7 +261,7 @@ public class HomeFragment extends Fragment {
             unSyncRideList.get().forEach(unSyncRideDto -> {
                 AppExecutors.getInstance().getNetworkIO().execute(() -> {
                     try {
-                        TripRecordLocationRelation relation = DatabaseClient.getInstance(mActivity).getTripDatabase().tripRecordDao().getByTripId(UUID.fromString(unSyncRideDto.getTripId()));
+                        TripRecordLocationRelation relation = DatabaseClient.getInstance(mActivity).getTripDatabase().tripRecordDao().getByTripId(unSyncRideDto.getTripId());
                         double totalDistanceInKm = 0d;
                         if (relation.getLocations() != null && relation.getLocations().size() > 0) {
                             totalDistanceInKm = TrackerUtility.calculateDistanceInKilometer(relation.getLocations());
@@ -352,7 +352,7 @@ public class HomeFragment extends Fragment {
             bodyMap.put("rideDistance", rideDistance);
             bodyMap.put("FileProvided", fileProvided);
 
-            Call<Void> updateRideCall = ApiHandler.getClient().updateRide(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID, tripRecord.getTripId().toString(), bodyMap);
+            Call<Void> updateRideCall = ApiHandler.getClient().updateRide(LocationApp.getUserName(mActivity), LocationApp.DEVICE_ID, tripRecord.getTripId(), bodyMap);
             updateRideCall.enqueue(new Callback<Void>(){
 
                 @Override

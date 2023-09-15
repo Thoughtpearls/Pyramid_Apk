@@ -18,8 +18,6 @@ package com.thoughtpearl.conveyance.ui.recordride;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Dialog;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -35,7 +33,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -50,12 +47,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatCallback;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.location.LocationManagerCompat;
 
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -90,14 +85,16 @@ import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.api.ApiHandler;
 import com.thoughtpearl.conveyance.api.SearchRideFilter;
 import com.thoughtpearl.conveyance.api.SearchRideResponse;
+import com.thoughtpearl.conveyance.api.response.CreateTurnOnGpsRequest;
 import com.thoughtpearl.conveyance.api.response.Ride;
 import com.thoughtpearl.conveyance.api.response.RideReason;
-import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
 import com.thoughtpearl.conveyance.respository.databaseclient.DatabaseClient;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
 import com.thoughtpearl.conveyance.respository.entity.TripRecordLocationRelation;
+import com.thoughtpearl.conveyance.respository.executers.AppExecutors;
 import com.thoughtpearl.conveyance.services.MyService;
 import com.thoughtpearl.conveyance.ui.customcomponent.CustomDialog;
+import com.thoughtpearl.conveyance.ui.navigation.BottomNavigationActivity;
 import com.thoughtpearl.conveyance.utility.SphericalUtil;
 import com.thoughtpearl.conveyance.utility.TrackerUtility;
 
@@ -631,6 +628,9 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             UUID tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
             LocationApp.logs("TRIP", "TripId:" + tripId);
             LocationApp.logs("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
+            Long tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
+            Log.d("TRIP", "TripId:" + tripId);
+            Log.d("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
 
             runOnUiThread(() -> {
                 Bundle rideBundle = new Bundle();
