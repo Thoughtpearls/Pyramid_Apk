@@ -1,114 +1,110 @@
 [
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_ride_details_list.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_ride_details_list.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_gallery.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_gallery.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\app_bar_main.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\app_bar_main.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/nav_header_dashboard.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/nav_header_dashboard.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\date_picker_layout.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\date_picker_layout.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_ride_details.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_ride_details.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_gallery.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_gallery.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_maps.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_maps.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_bottom_navigation.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_bottom_navigation.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/spinner_item.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/spinner_item.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\spinner_item.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\spinner_item.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/content_main.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/content_main.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_second.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_second.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/spinner_dropdown_item.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/spinner_dropdown_item.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_ride_details.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_ride_details.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_statistics.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_statistics.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\app_bar_dashboard.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\app_bar_dashboard.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/complete_ride_layout.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/complete_ride_layout.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\nav_header_dashboard.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\nav_header_dashboard.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_bottom_navigation.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_bottom_navigation.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_login.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_login.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_splash_screen.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_splash_screen.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_maps.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_maps.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_ride_details_list.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_ride_details_list.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_splash_screen.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_splash_screen.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/date_picker_layout.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/date_picker_layout.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\spinner_dropdown_item.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\spinner_dropdown_item.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/app_bar_dashboard.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/app_bar_dashboard.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\spinner_layout.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\spinner_layout.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_login.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_login.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\content_main.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\content_main.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/app_bar_main.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/app_bar_main.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_attendance.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_attendance.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_ride_details.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_ride_details.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\content_dashboard.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\content_dashboard.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_first.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_first.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_ride_details.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_ride_details.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_slideshow.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_slideshow.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\alert_layout.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\alert_layout.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/activity_dashboard.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/activity_dashboard.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\location_activity.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\location_activity.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/spinner_layout.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/spinner_layout.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_statistics.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_statistics.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/content_dashboard.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/content_dashboard.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_slideshow.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_slideshow.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_attendance.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_attendance.xml"
     },
     {
-        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-5:/layout/alert_layout.xml",
-        "source": "com.thoughtpearl.conveyance.app-main-8:/layout/alert_layout.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_second.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_second.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_first.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_first.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/alert_layout.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/alert_layout.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\complete_ride_layout.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\complete_ride_layout.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/fragment_home.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/fragment_home.xml"
     },
     {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\fragment_home.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\fragment_home.xml"
-    },
-    {
-        "merged": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-mergeDebugResources-5:\\layout\\activity_dashboard.xml",
-        "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\daemon\\8.0.1\\com.thoughtpearl.conveyance.app-main-8:\\layout\\activity_dashboard.xml"
+        "merged": "com.thoughtpearl.conveyance.app-mergeDebugResources-57:/layout/location_activity.xml",
+        "source": "com.thoughtpearl.conveyance.app-main-60:/layout/location_activity.xml"
     }
 ]

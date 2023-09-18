@@ -74,12 +74,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
-import com.hypertrack.hyperlog.HLCallback;
 import com.hypertrack.hyperlog.HyperLog;
-import com.hypertrack.hyperlog.error.HLErrorResponse;
 import com.hypertrack.hyperlog.utils.HLDateTimeUtility;
-import com.thoughtpearl.conveyance.api.response.CreateTurnOnGpsRequest;
-import com.thoughtpearl.conveyance.ui.navigation.BottomNavigationActivity;
 import com.thoughtpearl.conveyance.LocationApp;
 import com.thoughtpearl.conveyance.R;
 import com.thoughtpearl.conveyance.api.ApiHandler;
@@ -107,7 +103,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -219,9 +214,9 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
             try {
 
                 if (HyperLog.hasPendingDeviceLogs()) {
-                    HashMap<String, String> headers = new HashMap<>();
-                    headers.put("userName", LocationApp.getUserName(this));
-                    headers.put("deviceId", LocationApp.DEVICE_ID);
+//                    HashMap<String, String> headers = new HashMap<>();
+//                    headers.put("userName", LocationApp.getUserName(this));
+//                    headers.put("deviceId", LocationApp.DEVICE_ID);
                     String fileName = LocationApp.getUserName(this) +"_" + HLDateTimeUtility.getCurrentTime();
                     File file = HyperLog.getDeviceLogsInFile(this);
                     Map<String, RequestBody> bodyMap = new HashMap<>();
@@ -625,12 +620,10 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
         startTimer();
 
         AppExecutors.getInstance().getDiskIO().execute(() -> {
-            UUID tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
+
+            Long tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
             LocationApp.logs("TRIP", "TripId:" + tripId);
             LocationApp.logs("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
-            Long tripId = databaseClient.getTripDatabase().tripRecordDao().getLastTripId();
-            Log.d("TRIP", "TripId:" + tripId);
-            Log.d("TRIP", "TripCount:" + databaseClient.getTripDatabase().tripRecordDao().getTotalTrips().length);
 
             runOnUiThread(() -> {
                 Bundle rideBundle = new Bundle();
@@ -1359,7 +1352,7 @@ public class RecordRideActivity extends AppCompatActivity implements OnMapReadyC
                         @Override
                         public void onResponse(Call<String> call, Response<String> response) {
                             if (response.code() == 201) {
-                                ride.setId(response.body());
+                                ride.setId(Long.parseLong(response.body()));
                                 startRide(ride, dialog.isUseGps());
                             } else {
                                 String message = "Can not start ride at the moment. Please try after some time";

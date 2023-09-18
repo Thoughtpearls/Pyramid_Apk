@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.thoughtpearl.conveyance.app-mergeDebugResources-4:/values-w1240dp-v13/values-w1240dp-v13.xml",
+            "outputFile": "com.thoughtpearl.conveyance.app-mergeDebugResources-56:/values-w1240dp-v13/values-w1240dp-v13.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\hp\\AndroidStudioProjects\\TrackerApp\\app\\src\\main\\res\\values-w1240dp\\dimens.xml",
+                    "source": "/home/admin1/Pyramid/Pyramid_Apk/app/src/main/res/values-w1240dp/dimens.xml",
                     "from": {
                         "startLines": "1,2",
                         "startColumns": "4,4",

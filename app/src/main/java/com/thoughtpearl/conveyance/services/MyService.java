@@ -1089,8 +1089,7 @@ public class MyService extends LifecycleService implements LocationListener {
     //This is where we detect the app is being killed, thus stop service.
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        LocationApp.logs("Terminated background location service:" + ride != null ? ride.getId() : " null");
-        LocationApp.logs("TRIP", "onTaskRemoved : location tracking being killed");
+        LocationApp.logs(String.valueOf("Terminated background location service:" + ride != null ? ride.getId() : " null"));
         this.stopUpdatingLocation();
         stopSelf();
 

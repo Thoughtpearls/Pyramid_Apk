@@ -1,7 +1,7 @@
 package com.thoughtpearl.conveyance.respository.dao;
 
 import android.database.Cursor;
-import androidx.collection.ArrayMap;
+import androidx.collection.LongSparseArray;
 import androidx.room.EntityDeletionOrUpdateAdapter;
 import androidx.room.EntityInsertionAdapter;
 import androidx.room.RoomDatabase;
@@ -11,7 +11,6 @@ import androidx.room.util.CursorUtil;
 import androidx.room.util.DBUtil;
 import androidx.room.util.StringUtil;
 import androidx.sqlite.db.SupportSQLiteStatement;
-import com.thoughtpearl.conveyance.respository.converter.UUIDConverter;
 import com.thoughtpearl.conveyance.respository.dto.UnSyncRideDto;
 import com.thoughtpearl.conveyance.respository.entity.Location;
 import com.thoughtpearl.conveyance.respository.entity.TripRecord;
@@ -25,8 +24,6 @@ import java.lang.SuppressWarnings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public final class TripRecordDao_Impl implements TripRecordDao {
@@ -64,17 +61,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
 
       @Override
       public void bind(SupportSQLiteStatement stmt, TripRecord value) {
-        final String _tmp = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp == null) {
+        if (value.tripId == null) {
           stmt.bindNull(1);
         } else {
-          stmt.bindString(1, _tmp);
+          stmt.bindLong(1, value.tripId);
         }
         stmt.bindLong(2, value.startTimestamp);
         stmt.bindLong(3, value.endTimestamp);
         stmt.bindDouble(4, value.totalDistance);
-        final int _tmp_1 = value.status ? 1 : 0;
-        stmt.bindLong(5, _tmp_1);
+        final int _tmp = value.status ? 1 : 0;
+        stmt.bindLong(5, _tmp);
         if (value.deviceId == null) {
           stmt.bindNull(6);
         } else {
@@ -105,11 +101,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
 
       @Override
       public void bind(SupportSQLiteStatement stmt, Location value) {
-        final String _tmp = UUIDConverter.fromUUID(value.locationId);
-        if (_tmp == null) {
+        if (value.locationId == null) {
           stmt.bindNull(1);
         } else {
-          stmt.bindString(1, _tmp);
+          stmt.bindLong(1, value.locationId);
         }
         if (value.latitude == null) {
           stmt.bindNull(2);
@@ -121,18 +116,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           stmt.bindDouble(3, value.longitude);
         }
-        final int _tmp_1 = value.serverSync ? 1 : 0;
-        stmt.bindLong(4, _tmp_1);
+        final int _tmp = value.serverSync ? 1 : 0;
+        stmt.bindLong(4, _tmp);
         if (value.timestamp == null) {
           stmt.bindNull(5);
         } else {
           stmt.bindString(5, value.timestamp);
         }
-        final String _tmp_2 = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp_2 == null) {
+        if (value.tripId == null) {
           stmt.bindNull(6);
         } else {
-          stmt.bindString(6, _tmp_2);
+          stmt.bindLong(6, value.tripId);
         }
       }
     };
@@ -144,11 +138,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
 
       @Override
       public void bind(SupportSQLiteStatement stmt, TripRecord value) {
-        final String _tmp = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp == null) {
+        if (value.tripId == null) {
           stmt.bindNull(1);
         } else {
-          stmt.bindString(1, _tmp);
+          stmt.bindLong(1, value.tripId);
         }
       }
     };
@@ -160,17 +153,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
 
       @Override
       public void bind(SupportSQLiteStatement stmt, TripRecord value) {
-        final String _tmp = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp == null) {
+        if (value.tripId == null) {
           stmt.bindNull(1);
         } else {
-          stmt.bindString(1, _tmp);
+          stmt.bindLong(1, value.tripId);
         }
         stmt.bindLong(2, value.startTimestamp);
         stmt.bindLong(3, value.endTimestamp);
         stmt.bindDouble(4, value.totalDistance);
-        final int _tmp_1 = value.status ? 1 : 0;
-        stmt.bindLong(5, _tmp_1);
+        final int _tmp = value.status ? 1 : 0;
+        stmt.bindLong(5, _tmp);
         if (value.deviceId == null) {
           stmt.bindNull(6);
         } else {
@@ -191,11 +183,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           stmt.bindString(9, value.sanctionDistance);
         }
-        final String _tmp_2 = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp_2 == null) {
+        if (value.tripId == null) {
           stmt.bindNull(10);
         } else {
-          stmt.bindString(10, _tmp_2);
+          stmt.bindLong(10, value.tripId);
         }
       }
     };
@@ -207,11 +198,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
 
       @Override
       public void bind(SupportSQLiteStatement stmt, Location value) {
-        final String _tmp = UUIDConverter.fromUUID(value.locationId);
-        if (_tmp == null) {
+        if (value.locationId == null) {
           stmt.bindNull(1);
         } else {
-          stmt.bindString(1, _tmp);
+          stmt.bindLong(1, value.locationId);
         }
         if (value.latitude == null) {
           stmt.bindNull(2);
@@ -223,24 +213,22 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           stmt.bindDouble(3, value.longitude);
         }
-        final int _tmp_1 = value.serverSync ? 1 : 0;
-        stmt.bindLong(4, _tmp_1);
+        final int _tmp = value.serverSync ? 1 : 0;
+        stmt.bindLong(4, _tmp);
         if (value.timestamp == null) {
           stmt.bindNull(5);
         } else {
           stmt.bindString(5, value.timestamp);
         }
-        final String _tmp_2 = UUIDConverter.fromUUID(value.tripId);
-        if (_tmp_2 == null) {
+        if (value.tripId == null) {
           stmt.bindNull(6);
         } else {
-          stmt.bindString(6, _tmp_2);
+          stmt.bindLong(6, value.tripId);
         }
-        final String _tmp_3 = UUIDConverter.fromUUID(value.locationId);
-        if (_tmp_3 == null) {
+        if (value.locationId == null) {
           stmt.bindNull(7);
         } else {
-          stmt.bindString(7, _tmp_3);
+          stmt.bindLong(7, value.locationId);
         }
       }
     };
@@ -377,17 +365,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public int updateRecord(final UUID id, final long endTime) {
+  public int updateRecord(final Long id, final long endTime) {
     __db.assertNotSuspendingTransaction();
     final SupportSQLiteStatement _stmt = __preparedStmtOfUpdateRecord.acquire();
     int _argIndex = 1;
     _stmt.bindLong(_argIndex, endTime);
     _argIndex = 2;
-    final String _tmp = UUIDConverter.fromUUID(id);
-    if (_tmp == null) {
+    if (id == null) {
       _stmt.bindNull(_argIndex);
     } else {
-      _stmt.bindString(_argIndex, _tmp);
+      _stmt.bindLong(_argIndex, id);
     }
     __db.beginTransaction();
     try {
@@ -401,17 +388,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public void updateLocationById(final int syncServer, final UUID locationId) {
+  public void updateLocationById(final int syncServer, final Long locationId) {
     __db.assertNotSuspendingTransaction();
     final SupportSQLiteStatement _stmt = __preparedStmtOfUpdateLocationById.acquire();
     int _argIndex = 1;
     _stmt.bindLong(_argIndex, syncServer);
     _argIndex = 2;
-    final String _tmp = UUIDConverter.fromUUID(locationId);
-    if (_tmp == null) {
+    if (locationId == null) {
       _stmt.bindNull(_argIndex);
     } else {
-      _stmt.bindString(_argIndex, _tmp);
+      _stmt.bindLong(_argIndex, locationId);
     }
     __db.beginTransaction();
     try {
@@ -424,15 +410,14 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public void deleteById(final UUID tripId) {
+  public void deleteById(final Long tripId) {
     __db.assertNotSuspendingTransaction();
     final SupportSQLiteStatement _stmt = __preparedStmtOfDeleteById.acquire();
     int _argIndex = 1;
-    final String _tmp = UUIDConverter.fromUUID(tripId);
-    if (_tmp == null) {
+    if (tripId == null) {
       _stmt.bindNull(_argIndex);
     } else {
-      _stmt.bindString(_argIndex, _tmp);
+      _stmt.bindLong(_argIndex, tripId);
     }
     __db.beginTransaction();
     try {
@@ -506,19 +491,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       while(_cursor.moveToNext()) {
         final TripRecord _item;
         _item = new TripRecord();
-        final String _tmp;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp = null;
+          _item.tripId = null;
         } else {
-          _tmp = _cursor.getString(_cursorIndexOfTripId);
+          _item.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _item.tripId = UUIDConverter.uuidFromString(_tmp);
         _item.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
         _item.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
         _item.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-        final int _tmp_1;
-        _tmp_1 = _cursor.getInt(_cursorIndexOfStatus);
-        _item.status = _tmp_1 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfStatus);
+        _item.status = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfDeviceId)) {
           _item.deviceId = null;
         } else {
@@ -566,10 +549,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         final int _cursorIndexOfRidePurposeId = CursorUtil.getColumnIndexOrThrow(_cursor, "purposeId");
         final int _cursorIndexOfReimbursementCost = CursorUtil.getColumnIndexOrThrow(_cursor, "reimbursementCost");
         final int _cursorIndexOfSanctionDistance = CursorUtil.getColumnIndexOrThrow(_cursor, "sanctionDistance");
-        final ArrayMap<String, ArrayList<Location>> _collectionLocations = new ArrayMap<String, ArrayList<Location>>();
+        final LongSparseArray<ArrayList<Location>> _collectionLocations = new LongSparseArray<ArrayList<Location>>();
         while (_cursor.moveToNext()) {
           if (!_cursor.isNull(_cursorIndexOfTripId)) {
-            final String _tmpKey = _cursor.getString(_cursorIndexOfTripId);
+            final long _tmpKey = _cursor.getLong(_cursorIndexOfTripId);
             ArrayList<Location> _tmpLocationsCollection = _collectionLocations.get(_tmpKey);
             if (_tmpLocationsCollection == null) {
               _tmpLocationsCollection = new ArrayList<Location>();
@@ -585,19 +568,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
           final TripRecord _tmpTripRecord;
           if (! (_cursor.isNull(_cursorIndexOfTripId) && _cursor.isNull(_cursorIndexOfStartTimestamp) && _cursor.isNull(_cursorIndexOfEndTimestamp) && _cursor.isNull(_cursorIndexOfTotalDistance) && _cursor.isNull(_cursorIndexOfStatus) && _cursor.isNull(_cursorIndexOfDeviceId) && _cursor.isNull(_cursorIndexOfRidePurposeId) && _cursor.isNull(_cursorIndexOfReimbursementCost) && _cursor.isNull(_cursorIndexOfSanctionDistance))) {
             _tmpTripRecord = new TripRecord();
-            final String _tmp;
             if (_cursor.isNull(_cursorIndexOfTripId)) {
-              _tmp = null;
+              _tmpTripRecord.tripId = null;
             } else {
-              _tmp = _cursor.getString(_cursorIndexOfTripId);
+              _tmpTripRecord.tripId = _cursor.getLong(_cursorIndexOfTripId);
             }
-            _tmpTripRecord.tripId = UUIDConverter.uuidFromString(_tmp);
             _tmpTripRecord.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
             _tmpTripRecord.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
             _tmpTripRecord.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-            final int _tmp_1;
-            _tmp_1 = _cursor.getInt(_cursorIndexOfStatus);
-            _tmpTripRecord.status = _tmp_1 != 0;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfStatus);
+            _tmpTripRecord.status = _tmp != 0;
             if (_cursor.isNull(_cursorIndexOfDeviceId)) {
               _tmpTripRecord.deviceId = null;
             } else {
@@ -623,7 +604,7 @@ public final class TripRecordDao_Impl implements TripRecordDao {
           }
           ArrayList<Location> _tmpLocationsCollection_1 = null;
           if (!_cursor.isNull(_cursorIndexOfTripId)) {
-            final String _tmpKey_1 = _cursor.getString(_cursorIndexOfTripId);
+            final long _tmpKey_1 = _cursor.getLong(_cursorIndexOfTripId);
             _tmpLocationsCollection_1 = _collectionLocations.get(_tmpKey_1);
           }
           if (_tmpLocationsCollection_1 == null) {
@@ -646,23 +627,21 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public UUID[] getTotalTrips() {
+  public Long[] getTotalTrips() {
     final String _sql = "SELECT distinct(id) FROM TripRecord";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     __db.assertNotSuspendingTransaction();
     final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
     try {
-      final UUID[] _result = new UUID[_cursor.getCount()];
+      final Long[] _result = new Long[_cursor.getCount()];
       int _index = 0;
       while(_cursor.moveToNext()) {
-        final UUID _item;
-        final String _tmp;
+        final Long _item;
         if (_cursor.isNull(0)) {
-          _tmp = null;
+          _item = null;
         } else {
-          _tmp = _cursor.getString(0);
+          _item = _cursor.getLong(0);
         }
-        _item = UUIDConverter.uuidFromString(_tmp);
         _result[_index] = _item;
         _index ++;
       }
@@ -674,7 +653,7 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public List<TripRecord> getTripByIds(final UUID[] tripIds) {
+  public List<TripRecord> getTripByIds(final Long[] tripIds) {
     StringBuilder _stringBuilder = StringUtil.newStringBuilder();
     _stringBuilder.append("SELECT * FROM TripRecord WHERE id IN (");
     final int _inputSize = tripIds.length;
@@ -684,12 +663,11 @@ public final class TripRecordDao_Impl implements TripRecordDao {
     final int _argCount = 0 + _inputSize;
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, _argCount);
     int _argIndex = 1;
-    for (UUID _item : tripIds) {
-      final String _tmp = UUIDConverter.fromUUID(_item);
-      if (_tmp == null) {
+    for (Long _item : tripIds) {
+      if (_item == null) {
         _statement.bindNull(_argIndex);
       } else {
-        _statement.bindString(_argIndex, _tmp);
+        _statement.bindLong(_argIndex, _item);
       }
       _argIndex ++;
     }
@@ -709,19 +687,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       while(_cursor.moveToNext()) {
         final TripRecord _item_1;
         _item_1 = new TripRecord();
-        final String _tmp_1;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp_1 = null;
+          _item_1.tripId = null;
         } else {
-          _tmp_1 = _cursor.getString(_cursorIndexOfTripId);
+          _item_1.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _item_1.tripId = UUIDConverter.uuidFromString(_tmp_1);
         _item_1.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
         _item_1.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
         _item_1.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-        final int _tmp_2;
-        _tmp_2 = _cursor.getInt(_cursorIndexOfStatus);
-        _item_1.status = _tmp_2 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfStatus);
+        _item_1.status = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfDeviceId)) {
           _item_1.deviceId = null;
         } else {
@@ -752,15 +728,14 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public TripRecord getTripById(final UUID tripId) {
+  public TripRecord getTripById(final Long tripId) {
     final String _sql = "SELECT * FROM TripRecord WHERE id IN (?)";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
-    final String _tmp = UUIDConverter.fromUUID(tripId);
-    if (_tmp == null) {
+    if (tripId == null) {
       _statement.bindNull(_argIndex);
     } else {
-      _statement.bindString(_argIndex, _tmp);
+      _statement.bindLong(_argIndex, tripId);
     }
     __db.assertNotSuspendingTransaction();
     final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
@@ -777,19 +752,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       final TripRecord _result;
       if(_cursor.moveToFirst()) {
         _result = new TripRecord();
-        final String _tmp_1;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp_1 = null;
+          _result.tripId = null;
         } else {
-          _tmp_1 = _cursor.getString(_cursorIndexOfTripId);
+          _result.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _result.tripId = UUIDConverter.uuidFromString(_tmp_1);
         _result.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
         _result.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
         _result.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-        final int _tmp_2;
-        _tmp_2 = _cursor.getInt(_cursorIndexOfStatus);
-        _result.status = _tmp_2 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfStatus);
+        _result.status = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfDeviceId)) {
           _result.deviceId = null;
         } else {
@@ -839,19 +812,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       final TripRecord _result;
       if(_cursor.moveToFirst()) {
         _result = new TripRecord();
-        final String _tmp;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp = null;
+          _result.tripId = null;
         } else {
-          _tmp = _cursor.getString(_cursorIndexOfTripId);
+          _result.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _result.tripId = UUIDConverter.uuidFromString(_tmp);
         _result.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
         _result.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
         _result.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-        final int _tmp_1;
-        _tmp_1 = _cursor.getInt(_cursorIndexOfStatus);
-        _result.status = _tmp_1 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfStatus);
+        _result.status = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfDeviceId)) {
           _result.deviceId = null;
         } else {
@@ -883,21 +854,19 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public UUID getLastTripId() {
+  public Long getLastTripId() {
     final String _sql = "Select id From TripRecord order by start_time desc limit 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     __db.assertNotSuspendingTransaction();
     final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
     try {
-      final UUID _result;
+      final Long _result;
       if(_cursor.moveToFirst()) {
-        final String _tmp;
         if (_cursor.isNull(0)) {
-          _tmp = null;
+          _result = null;
         } else {
-          _tmp = _cursor.getString(0);
+          _result = _cursor.getLong(0);
         }
-        _result = UUIDConverter.uuidFromString(_tmp);
       } else {
         _result = null;
       }
@@ -909,15 +878,14 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public TripRecordLocationRelation getByTripId(final UUID tripId) {
+  public TripRecordLocationRelation getByTripId(final Long tripId) {
     final String _sql = "SELECT * FROM TripRecord WHERE id = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
-    final String _tmp = UUIDConverter.fromUUID(tripId);
-    if (_tmp == null) {
+    if (tripId == null) {
       _statement.bindNull(_argIndex);
     } else {
-      _statement.bindString(_argIndex, _tmp);
+      _statement.bindLong(_argIndex, tripId);
     }
     __db.assertNotSuspendingTransaction();
     __db.beginTransaction();
@@ -933,10 +901,10 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         final int _cursorIndexOfRidePurposeId = CursorUtil.getColumnIndexOrThrow(_cursor, "purposeId");
         final int _cursorIndexOfReimbursementCost = CursorUtil.getColumnIndexOrThrow(_cursor, "reimbursementCost");
         final int _cursorIndexOfSanctionDistance = CursorUtil.getColumnIndexOrThrow(_cursor, "sanctionDistance");
-        final ArrayMap<String, ArrayList<Location>> _collectionLocations = new ArrayMap<String, ArrayList<Location>>();
+        final LongSparseArray<ArrayList<Location>> _collectionLocations = new LongSparseArray<ArrayList<Location>>();
         while (_cursor.moveToNext()) {
           if (!_cursor.isNull(_cursorIndexOfTripId)) {
-            final String _tmpKey = _cursor.getString(_cursorIndexOfTripId);
+            final long _tmpKey = _cursor.getLong(_cursorIndexOfTripId);
             ArrayList<Location> _tmpLocationsCollection = _collectionLocations.get(_tmpKey);
             if (_tmpLocationsCollection == null) {
               _tmpLocationsCollection = new ArrayList<Location>();
@@ -951,19 +919,17 @@ public final class TripRecordDao_Impl implements TripRecordDao {
           final TripRecord _tmpTripRecord;
           if (! (_cursor.isNull(_cursorIndexOfTripId) && _cursor.isNull(_cursorIndexOfStartTimestamp) && _cursor.isNull(_cursorIndexOfEndTimestamp) && _cursor.isNull(_cursorIndexOfTotalDistance) && _cursor.isNull(_cursorIndexOfStatus) && _cursor.isNull(_cursorIndexOfDeviceId) && _cursor.isNull(_cursorIndexOfRidePurposeId) && _cursor.isNull(_cursorIndexOfReimbursementCost) && _cursor.isNull(_cursorIndexOfSanctionDistance))) {
             _tmpTripRecord = new TripRecord();
-            final String _tmp_1;
             if (_cursor.isNull(_cursorIndexOfTripId)) {
-              _tmp_1 = null;
+              _tmpTripRecord.tripId = null;
             } else {
-              _tmp_1 = _cursor.getString(_cursorIndexOfTripId);
+              _tmpTripRecord.tripId = _cursor.getLong(_cursorIndexOfTripId);
             }
-            _tmpTripRecord.tripId = UUIDConverter.uuidFromString(_tmp_1);
             _tmpTripRecord.startTimestamp = _cursor.getLong(_cursorIndexOfStartTimestamp);
             _tmpTripRecord.endTimestamp = _cursor.getLong(_cursorIndexOfEndTimestamp);
             _tmpTripRecord.totalDistance = _cursor.getDouble(_cursorIndexOfTotalDistance);
-            final int _tmp_2;
-            _tmp_2 = _cursor.getInt(_cursorIndexOfStatus);
-            _tmpTripRecord.status = _tmp_2 != 0;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfStatus);
+            _tmpTripRecord.status = _tmp != 0;
             if (_cursor.isNull(_cursorIndexOfDeviceId)) {
               _tmpTripRecord.deviceId = null;
             } else {
@@ -989,7 +955,7 @@ public final class TripRecordDao_Impl implements TripRecordDao {
           }
           ArrayList<Location> _tmpLocationsCollection_1 = null;
           if (!_cursor.isNull(_cursorIndexOfTripId)) {
-            final String _tmpKey_1 = _cursor.getString(_cursorIndexOfTripId);
+            final long _tmpKey_1 = _cursor.getLong(_cursorIndexOfTripId);
             _tmpLocationsCollection_1 = _collectionLocations.get(_tmpKey_1);
           }
           if (_tmpLocationsCollection_1 == null) {
@@ -1013,7 +979,7 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public UUID getLastInsertedTripId(final Long rowId) {
+  public Long getLastInsertedTripId(final Long rowId) {
     final String _sql = "Select id From TripRecord WHERE rowid =?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -1025,15 +991,13 @@ public final class TripRecordDao_Impl implements TripRecordDao {
     __db.assertNotSuspendingTransaction();
     final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
     try {
-      final UUID _result;
+      final Long _result;
       if(_cursor.moveToFirst()) {
-        final String _tmp;
         if (_cursor.isNull(0)) {
-          _tmp = null;
+          _result = null;
         } else {
-          _tmp = _cursor.getString(0);
+          _result = _cursor.getLong(0);
         }
-        _result = UUIDConverter.uuidFromString(_tmp);
       } else {
         _result = null;
       }
@@ -1045,14 +1009,14 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   @Override
-  public List<Location> getUnSyncServerLocations(final String tripId) {
+  public List<Location> getUnSyncServerLocations(final Long tripId) {
     final String _sql = "SELECT * FROM location WHERE tripId IN (?) AND serverSync=0";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
     if (tripId == null) {
       _statement.bindNull(_argIndex);
     } else {
-      _statement.bindString(_argIndex, tripId);
+      _statement.bindLong(_argIndex, tripId);
     }
     __db.assertNotSuspendingTransaction();
     final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
@@ -1067,13 +1031,11 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       while(_cursor.moveToNext()) {
         final Location _item;
         _item = new Location();
-        final String _tmp;
         if (_cursor.isNull(_cursorIndexOfLocationId)) {
-          _tmp = null;
+          _item.locationId = null;
         } else {
-          _tmp = _cursor.getString(_cursorIndexOfLocationId);
+          _item.locationId = _cursor.getLong(_cursorIndexOfLocationId);
         }
-        _item.locationId = UUIDConverter.uuidFromString(_tmp);
         if (_cursor.isNull(_cursorIndexOfLatitude)) {
           _item.latitude = null;
         } else {
@@ -1084,21 +1046,19 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           _item.longitude = _cursor.getDouble(_cursorIndexOfLongitude);
         }
-        final int _tmp_1;
-        _tmp_1 = _cursor.getInt(_cursorIndexOfServerSync);
-        _item.serverSync = _tmp_1 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfServerSync);
+        _item.serverSync = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfTimestamp)) {
           _item.timestamp = null;
         } else {
           _item.timestamp = _cursor.getString(_cursorIndexOfTimestamp);
         }
-        final String _tmp_2;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp_2 = null;
+          _item.tripId = null;
         } else {
-          _tmp_2 = _cursor.getString(_cursorIndexOfTripId);
+          _item.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _item.tripId = UUIDConverter.uuidFromString(_tmp_2);
         _result.add(_item);
       }
       return _result;
@@ -1125,13 +1085,11 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       while(_cursor.moveToNext()) {
         final Location _item;
         _item = new Location();
-        final String _tmp;
         if (_cursor.isNull(_cursorIndexOfLocationId)) {
-          _tmp = null;
+          _item.locationId = null;
         } else {
-          _tmp = _cursor.getString(_cursorIndexOfLocationId);
+          _item.locationId = _cursor.getLong(_cursorIndexOfLocationId);
         }
-        _item.locationId = UUIDConverter.uuidFromString(_tmp);
         if (_cursor.isNull(_cursorIndexOfLatitude)) {
           _item.latitude = null;
         } else {
@@ -1142,21 +1100,19 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           _item.longitude = _cursor.getDouble(_cursorIndexOfLongitude);
         }
-        final int _tmp_1;
-        _tmp_1 = _cursor.getInt(_cursorIndexOfServerSync);
-        _item.serverSync = _tmp_1 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfServerSync);
+        _item.serverSync = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfTimestamp)) {
           _item.timestamp = null;
         } else {
           _item.timestamp = _cursor.getString(_cursorIndexOfTimestamp);
         }
-        final String _tmp_2;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp_2 = null;
+          _item.tripId = null;
         } else {
-          _tmp_2 = _cursor.getString(_cursorIndexOfTripId);
+          _item.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _item.tripId = UUIDConverter.uuidFromString(_tmp_2);
         _result.add(_item);
       }
       return _result;
@@ -1197,11 +1153,11 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       final List<UnSyncRideDto> _result = new ArrayList<UnSyncRideDto>(_cursor.getCount());
       while(_cursor.moveToNext()) {
         final UnSyncRideDto _item;
-        final String _tmpTripId;
+        final Long _tmpTripId;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
           _tmpTripId = null;
         } else {
-          _tmpTripId = _cursor.getString(_cursorIndexOfTripId);
+          _tmpTripId = _cursor.getLong(_cursorIndexOfTripId);
         }
         _item = new UnSyncRideDto(_tmpTripId);
         _result.add(_item);
@@ -1236,13 +1192,11 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       while(_cursor.moveToNext()) {
         final Location _item;
         _item = new Location();
-        final String _tmp;
         if (_cursor.isNull(_cursorIndexOfLocationId)) {
-          _tmp = null;
+          _item.locationId = null;
         } else {
-          _tmp = _cursor.getString(_cursorIndexOfLocationId);
+          _item.locationId = _cursor.getLong(_cursorIndexOfLocationId);
         }
-        _item.locationId = UUIDConverter.uuidFromString(_tmp);
         if (_cursor.isNull(_cursorIndexOfLatitude)) {
           _item.latitude = null;
         } else {
@@ -1253,21 +1207,19 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         } else {
           _item.longitude = _cursor.getDouble(_cursorIndexOfLongitude);
         }
-        final int _tmp_1;
-        _tmp_1 = _cursor.getInt(_cursorIndexOfServerSync);
-        _item.serverSync = _tmp_1 != 0;
+        final int _tmp;
+        _tmp = _cursor.getInt(_cursorIndexOfServerSync);
+        _item.serverSync = _tmp != 0;
         if (_cursor.isNull(_cursorIndexOfTimestamp)) {
           _item.timestamp = null;
         } else {
           _item.timestamp = _cursor.getString(_cursorIndexOfTimestamp);
         }
-        final String _tmp_2;
         if (_cursor.isNull(_cursorIndexOfTripId)) {
-          _tmp_2 = null;
+          _item.tripId = null;
         } else {
-          _tmp_2 = _cursor.getString(_cursorIndexOfTripId);
+          _item.tripId = _cursor.getLong(_cursorIndexOfTripId);
         }
-        _item.tripId = UUIDConverter.uuidFromString(_tmp_2);
         _result.add(_item);
       }
       return _result;
@@ -1282,14 +1234,13 @@ public final class TripRecordDao_Impl implements TripRecordDao {
   }
 
   private void __fetchRelationshiplocationAscomThoughtpearlConveyanceRespositoryEntityLocation(
-      final ArrayMap<String, ArrayList<Location>> _map) {
-    final Set<String> __mapKeySet = _map.keySet();
-    if (__mapKeySet.isEmpty()) {
+      final LongSparseArray<ArrayList<Location>> _map) {
+    if (_map.isEmpty()) {
       return;
     }
     // check if the size is too big, if so divide;
     if(_map.size() > RoomDatabase.MAX_BIND_PARAMETER_CNT) {
-      ArrayMap<String, ArrayList<Location>> _tmpInnerMap = new ArrayMap<String, ArrayList<Location>>(androidx.room.RoomDatabase.MAX_BIND_PARAMETER_CNT);
+      LongSparseArray<ArrayList<Location>> _tmpInnerMap = new LongSparseArray<ArrayList<Location>>(androidx.room.RoomDatabase.MAX_BIND_PARAMETER_CNT);
       int _tmpIndex = 0;
       int _mapIndex = 0;
       final int _limit = _map.size();
@@ -1299,7 +1250,7 @@ public final class TripRecordDao_Impl implements TripRecordDao {
         _tmpIndex++;
         if(_tmpIndex == RoomDatabase.MAX_BIND_PARAMETER_CNT) {
           __fetchRelationshiplocationAscomThoughtpearlConveyanceRespositoryEntityLocation(_tmpInnerMap);
-          _tmpInnerMap = new ArrayMap<String, ArrayList<Location>>(RoomDatabase.MAX_BIND_PARAMETER_CNT);
+          _tmpInnerMap = new LongSparseArray<ArrayList<Location>>(RoomDatabase.MAX_BIND_PARAMETER_CNT);
           _tmpIndex = 0;
         }
       }
@@ -1310,19 +1261,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
     }
     StringBuilder _stringBuilder = StringUtil.newStringBuilder();
     _stringBuilder.append("SELECT `locationId`,`latitude`,`longitude`,`serverSync`,`timestamp`,`tripId` FROM `location` WHERE `tripId` IN (");
-    final int _inputSize = __mapKeySet.size();
+    final int _inputSize = _map.size();
     StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
     _stringBuilder.append(")");
     final String _sql = _stringBuilder.toString();
     final int _argCount = 0 + _inputSize;
     final RoomSQLiteQuery _stmt = RoomSQLiteQuery.acquire(_sql, _argCount);
     int _argIndex = 1;
-    for (String _item : __mapKeySet) {
-      if (_item == null) {
-        _stmt.bindNull(_argIndex);
-      } else {
-        _stmt.bindString(_argIndex, _item);
-      }
+    for (int i = 0; i < _map.size(); i++) {
+      long _item = _map.keyAt(i);
+      _stmt.bindLong(_argIndex, _item);
       _argIndex ++;
     }
     final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
@@ -1339,18 +1287,16 @@ public final class TripRecordDao_Impl implements TripRecordDao {
       final int _cursorIndexOfTripId = 5;
       while(_cursor.moveToNext()) {
         if (!_cursor.isNull(_itemKeyIndex)) {
-          final String _tmpKey = _cursor.getString(_itemKeyIndex);
+          final long _tmpKey = _cursor.getLong(_itemKeyIndex);
           ArrayList<Location> _tmpRelation = _map.get(_tmpKey);
           if (_tmpRelation != null) {
             final Location _item_1;
             _item_1 = new Location();
-            final String _tmp;
             if (_cursor.isNull(_cursorIndexOfLocationId)) {
-              _tmp = null;
+              _item_1.locationId = null;
             } else {
-              _tmp = _cursor.getString(_cursorIndexOfLocationId);
+              _item_1.locationId = _cursor.getLong(_cursorIndexOfLocationId);
             }
-            _item_1.locationId = UUIDConverter.uuidFromString(_tmp);
             if (_cursor.isNull(_cursorIndexOfLatitude)) {
               _item_1.latitude = null;
             } else {
@@ -1361,21 +1307,19 @@ public final class TripRecordDao_Impl implements TripRecordDao {
             } else {
               _item_1.longitude = _cursor.getDouble(_cursorIndexOfLongitude);
             }
-            final int _tmp_1;
-            _tmp_1 = _cursor.getInt(_cursorIndexOfServerSync);
-            _item_1.serverSync = _tmp_1 != 0;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfServerSync);
+            _item_1.serverSync = _tmp != 0;
             if (_cursor.isNull(_cursorIndexOfTimestamp)) {
               _item_1.timestamp = null;
             } else {
               _item_1.timestamp = _cursor.getString(_cursorIndexOfTimestamp);
             }
-            final String _tmp_2;
             if (_cursor.isNull(_cursorIndexOfTripId)) {
-              _tmp_2 = null;
+              _item_1.tripId = null;
             } else {
-              _tmp_2 = _cursor.getString(_cursorIndexOfTripId);
+              _item_1.tripId = _cursor.getLong(_cursorIndexOfTripId);
             }
-            _item_1.tripId = UUIDConverter.uuidFromString(_tmp_2);
             _tmpRelation.add(_item_1);
           }
         }

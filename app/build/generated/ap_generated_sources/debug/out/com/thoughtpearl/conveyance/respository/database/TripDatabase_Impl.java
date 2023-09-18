@@ -39,10 +39,10 @@ public final class TripDatabase_Impl extends TripDatabase {
     final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(configuration, new RoomOpenHelper.Delegate(2) {
       @Override
       public void createAllTables(SupportSQLiteDatabase _db) {
-        _db.execSQL("CREATE TABLE IF NOT EXISTS `TripRecord` (`id` TEXT NOT NULL, `start_time` INTEGER NOT NULL, `end_time` INTEGER NOT NULL, `total_distance` REAL NOT NULL, `status` INTEGER NOT NULL, `deviceId` TEXT, `purposeId` TEXT, `reimbursementCost` TEXT, `sanctionDistance` TEXT, PRIMARY KEY(`id`))");
-        _db.execSQL("CREATE TABLE IF NOT EXISTS `location` (`locationId` TEXT NOT NULL, `latitude` REAL, `longitude` REAL, `serverSync` INTEGER NOT NULL, `timestamp` TEXT, `tripId` TEXT, PRIMARY KEY(`locationId`), FOREIGN KEY(`tripId`) REFERENCES `TripRecord`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+        _db.execSQL("CREATE TABLE IF NOT EXISTS `TripRecord` (`id` INTEGER NOT NULL, `start_time` INTEGER NOT NULL, `end_time` INTEGER NOT NULL, `total_distance` REAL NOT NULL, `status` INTEGER NOT NULL, `deviceId` TEXT, `purposeId` TEXT, `reimbursementCost` TEXT, `sanctionDistance` TEXT, PRIMARY KEY(`id`))");
+        _db.execSQL("CREATE TABLE IF NOT EXISTS `location` (`locationId` INTEGER NOT NULL, `latitude` REAL, `longitude` REAL, `serverSync` INTEGER NOT NULL, `timestamp` TEXT, `tripId` INTEGER, PRIMARY KEY(`locationId`), FOREIGN KEY(`tripId`) REFERENCES `TripRecord`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         _db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '22a5b290c22fc3ee81e3f39609cfc3cf')");
+        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7f3e548c8ac246174f5aaf90d5e60c00')");
       }
 
       @Override
@@ -89,7 +89,7 @@ public final class TripDatabase_Impl extends TripDatabase {
       @Override
       protected RoomOpenHelper.ValidationResult onValidateSchema(SupportSQLiteDatabase _db) {
         final HashMap<String, TableInfo.Column> _columnsTripRecord = new HashMap<String, TableInfo.Column>(9);
-        _columnsTripRecord.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTripRecord.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsTripRecord.put("start_time", new TableInfo.Column("start_time", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsTripRecord.put("end_time", new TableInfo.Column("end_time", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsTripRecord.put("total_distance", new TableInfo.Column("total_distance", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -108,12 +108,12 @@ public final class TripDatabase_Impl extends TripDatabase {
                   + " Found:\n" + _existingTripRecord);
         }
         final HashMap<String, TableInfo.Column> _columnsLocation = new HashMap<String, TableInfo.Column>(6);
-        _columnsLocation.put("locationId", new TableInfo.Column("locationId", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsLocation.put("locationId", new TableInfo.Column("locationId", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsLocation.put("latitude", new TableInfo.Column("latitude", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsLocation.put("longitude", new TableInfo.Column("longitude", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsLocation.put("serverSync", new TableInfo.Column("serverSync", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsLocation.put("timestamp", new TableInfo.Column("timestamp", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
-        _columnsLocation.put("tripId", new TableInfo.Column("tripId", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsLocation.put("tripId", new TableInfo.Column("tripId", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysLocation = new HashSet<TableInfo.ForeignKey>(1);
         _foreignKeysLocation.add(new TableInfo.ForeignKey("TripRecord", "CASCADE", "NO ACTION",Arrays.asList("tripId"), Arrays.asList("id")));
         final HashSet<TableInfo.Index> _indicesLocation = new HashSet<TableInfo.Index>(0);
@@ -126,7 +126,7 @@ public final class TripDatabase_Impl extends TripDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "22a5b290c22fc3ee81e3f39609cfc3cf", "c2e92adbcf6dca1afd4b0388a2b0b48b");
+    }, "7f3e548c8ac246174f5aaf90d5e60c00", "c082b2d0cc4d0e1d26b80309341fc8b6");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(configuration.context)
         .name(configuration.name)
         .callback(_openCallback)

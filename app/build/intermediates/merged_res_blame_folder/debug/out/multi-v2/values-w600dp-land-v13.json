@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.thoughtpearl.conveyance.app-mergeDebugResources-4:/values-w600dp-land-v13/values-w600dp-land-v13.xml",
+            "outputFile": "com.thoughtpearl.conveyance.app-mergeDebugResources-56:/values-w600dp-land-v13/values-w600dp-land-v13.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\hp\\Downloads\\gradle-7.5\\caches\\transforms-3\\c6390d865dbe22f5e92c7fd1e000ac44\\transformed\\material-1.7.0\\res\\values-w600dp-land-v13\\values-w600dp-land-v13.xml",
+                    "source": "/home/admin1/.gradle/caches/transforms-3/03a98b9ffd3c4cdd1ba3e25d1b165f1d/transformed/material-1.7.0/res/values-w600dp-land-v13/values-w600dp-land-v13.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
